@@ -100,78 +100,58 @@ def compute_pmf(samples):
     '''
     pmf = {}
     for sample in samples:
-        pmf[tuple(sample)] = 1 if tuple(sample) not in pmf else pmf[tuple(sample)] + 1
+        pmf[(sample,)] = 1 if (sample,) not in pmf else pmf[(sample,)] + 1
     total = len(samples)
     for key in pmf:
         pmf[key] = pmf[key] / float(total)
     return pmf
 
-def compute_distribution(pairs, length):
+def compute_distribution(pairs, cmin, cmax):
     if len(pairs) == 0:
-        print length, "Can't compute the PMF of nothing!"
+        print cmin, cmax, "Can't compute the PMF of nothing!"
         return
 
     print "======="
+    print cmin, cmax
+    print pairs
 
     pmfs = []
-    for i in range(length):
+    for i in range(cmin, cmax):
         pmf = compute_pmf(pairs[i])
         pmfs.append(pmf)
 
     jpmfs = []
-    for i in range(1, length + 1):
-        jpmf = compute_joint_pmf(pairs[0:i])
+    for i in range(cmin, cmax):
+        jpmf = compute_joint_pmf(pairs[cmin:(i+1)])
         jpmfs.append(jpmf)
 
     if len(jpmfs) > 0:
-        entropy = compute_conditional_entropy(pmfs, jpmfs)
-        print "general", length, entropy
+        joint_entropy = compute_conditional_entropy(pmfs, jpmfs)
+        single_entropy = compute_entropy(pmfs[-1])
+        if (joint_entropy > single_entropy):
+            raise Exception("Impossible!")
+        print "general", cmin, cmax, joint_entropy, single_entropy
     else:
         entropy = compute_entropy(pmfs[0])
-        print "first", length, entropy
+        print "first", cmin, cmax, entropy
 
     print "=======\n"
 
-    # Sanity check.
-    # if length == 2:
-    #     pmfX = compute_pmf(pairs[0])
-    #     pmfY = compute_pmf(pairs[1])
-    #     # pmfZ = compute_pmf(pairs[2])
-    #     pmfXY = compute_joint_pmf(pairs[0:2])
-    #     # pmfXYZ = compute_joint_pmf(pairs)
-    #
-    #     jpmfs = [pmfX, pmfXY]
-    #     pmfs = [pmfX, pmfY]
-    #
-    #
-    #     print pmfs
-    #     print jpmfs
-    #
-    #     entropy = compute_conditional_entropy(pmfs, jpmfs)
-    #     print entropy
-
-        # pmfs.append(pmfZ)
-        # jpmfs.append(pmfXYZ)
-
-    # entropy = compute_conditional_entropy(pmfs, jpmfs)
-    # print entropy
-
 with open(sys.argv[1], "r") as f:
-    matrix = map(lambda line: line.strip().split("/"), f.readlines())
-    max_cols = int(sys.argv[2]) # max number of components in a URI
-    num_cols = int(sys.argv[3]) # number of segments to cover
+    matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
+    num_cols = int(sys.argv[2]) # max number of components in a URI
     num_rows = len(matrix)
 
     # For each possible column slice
-    for cmax in range(1, num_cols + 1):
-        # This will hold the columns of the matrix
-        columns = []
+    for cmin in range(0, num_cols):
+        for cmax in range(cmin + 1, num_cols + 1):
+            # This will hold the columns of the matrix
+            columns = []
 
-        # For each column in the matrix
-        for c in range(cmax):
-            column = map(lambda row : row[c], filter(lambda row : len(row) >= c, matrix))
-            columns.append(column)
+            # For each column in the matrix
+            for c in range(cmax):
+                column = map(lambda row : row[c], filter(lambda row : len(row) > c, matrix))
+                columns.append(column)
 
-        # Compute the distribution information from this column set
-        # print columns
-        compute_distribution(columns, cmax)
+            # Compute the distribution information from this column set
+            compute_distribution(columns, cmin, cmax)
