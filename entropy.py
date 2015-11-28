@@ -1,11 +1,12 @@
 import os
 import sys
 import math
+import logging
 
 # compute entropy and conditional entropy for each component index (using data) --- this would help the transparent encryption paper ONLY, not the obfuscation paper
 # compute list of MI between two names based on applying obfuscation technique at each component index
 
-def compute_conditional_entropy(pmfs, jpmfs, index = 0, acc = 0, indices = []):
+def compute_conditional_entropy(pmfs, jpmfs, index = 0, acc = {}, indices = []):
     '''
     Input:
         - list of individual pmfs: pmf(x1), pmf(x2), pmf(x3), ...
@@ -15,32 +16,40 @@ def compute_conditional_entropy(pmfs, jpmfs, index = 0, acc = 0, indices = []):
             2 returns H(x3 | x1 ^ x2)
     Output: conditional entropy
     '''
+    # H(Y | X) = \sum_{x \in X} p(x) H(Y | X = x)
+    #          = - \sum_{x \in X} p(x) \sum_{y \in Y} p(y | x) * log2(p(y | x))
     length = len(jpmfs)
     if index == (length - 1):
         entropy = 0
         for xi in pmfs[index]:
             new_index = tuple(indices[:] + [xi[0]])
             if new_index in jpmfs[index]:
-                entropy += (jpmfs[index][new_index] * math.log(jpmfs[index][new_index], 2))
+                tmp_index = (length - index, new_index)
+                if tmp_index not in acc:
+                    acc[tmp_index] = math.log(jpmfs[index][new_index], 2)
+                entropy += (jpmfs[index][new_index] * acc[tmp_index])
         return (entropy * -1)
     else:
         entropy = 0
         for xi in pmfs[index]:
             new_index = tuple(indices[:] + [xi[0]])
             if new_index in jpmfs[index]:
-                entropy += (jpmfs[index][new_index] * compute_conditional_entropy(pmfs, jpmfs, index + 1, acc, list(new_index)))
+                tmp_index = (length - index, new_index)
+                if tmp_index not in acc:
+                    acc[tmp_index] = compute_conditional_entropy(pmfs, jpmfs, index + 1, acc, list(new_index))
+                entropy += (jpmfs[index][new_index] * acc[tmp_index])
         return entropy
 
 def compute_pair_conditional_entropy(pmfX, pmfY, pmfXY):
     '''
+    NOTE: THIS IS DEPRECATED NOW
+
     Input:
         pmfX is map from (x) -> probability
         pmfY is map from (y) -> probability
         pmfXY is a map from (x, y) -> probability
     Output: conditional entropy
     '''
-    # H(Y | X) = \sum_{x \in X} p(x) H(Y | X = x)
-    #          = - \sum_{x \in X} p(x) \sum_{y \in Y} p(y | x) * log2(p(y | x))
     total = 0
     for (x) in pmfX:
         inner = 0
@@ -111,47 +120,56 @@ def compute_distribution(pairs, cmin, cmax):
         print cmin, cmax, "Can't compute the PMF of nothing!"
         return
 
-    print "======="
-    print cmin, cmax
-    print pairs
+    logging.debug("Starting run for cmin=%d cmax=%d" % (cmin, cmax))
+    logging.debug("Pairs = %s" % (str(pairs)))
 
     pmfs = []
     for i in range(cmin, cmax):
         pmf = compute_pmf(pairs[i])
+        logging.debug(str(pmf))
         pmfs.append(pmf)
 
     jpmfs = []
     for i in range(cmin, cmax):
         jpmf = compute_joint_pmf(pairs[cmin:(i+1)])
+        logging.debug(str(jpmf))
         jpmfs.append(jpmf)
 
     if len(jpmfs) > 0:
         joint_entropy = compute_conditional_entropy(pmfs, jpmfs)
         single_entropy = compute_entropy(pmfs[-1])
+
+        # Sanity check...
         if (joint_entropy > single_entropy):
             raise Exception("Impossible!")
-        print "general", cmin, cmax, joint_entropy, single_entropy
+        logging.debug("Joint=%f and Single=%f entropy result for cmin=%d cmax=%d" % (joint_entropy, single_entropy, cmin, cmax))
+
+        print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, single_entropy, joint_entropy))
+        print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, single_entropy, joint_entropy))
     else:
         entropy = compute_entropy(pmfs[0])
-        print "first", cmin, cmax, entropy
+        logging.debug("Single=%f entropy result for cmin=%d cmax=%d" % (single_entropy, cmin, cmax))
 
-    print "=======\n"
+def main(args):
+    logging.basicConfig(filename='entropy_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    with open(args[1], "r") as f:
+        matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
+        num_cols = int(args[2]) # max number of components in a URI
+        num_rows = len(matrix)
 
-with open(sys.argv[1], "r") as f:
-    matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
-    num_cols = int(sys.argv[2]) # max number of components in a URI
-    num_rows = len(matrix)
+        # For each possible column slice
+        for cmin in range(0, num_cols):
+            for cmax in range(cmin + 1, num_cols + 1):
+                # This will hold the columns of the matrix
+                columns = []
 
-    # For each possible column slice
-    for cmin in range(0, num_cols):
-        for cmax in range(cmin + 1, num_cols + 1):
-            # This will hold the columns of the matrix
-            columns = []
+                # For each column in the matrix
+                for c in range(cmax):
+                    column = map(lambda row : row[c], filter(lambda row : len(row) > c, matrix))
+                    columns.append(column)
 
-            # For each column in the matrix
-            for c in range(cmax):
-                column = map(lambda row : row[c], filter(lambda row : len(row) > c, matrix))
-                columns.append(column)
+                # Compute the distribution information from this column set
+                compute_distribution(columns, cmin, cmax)
 
-            # Compute the distribution information from this column set
-            compute_distribution(columns, cmin, cmax)
+if __name__ == "__main__":
+    main(sys.argv)
