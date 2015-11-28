@@ -151,7 +151,7 @@ def compute_distribution(pairs, cmin, cmax):
         logging.debug("Single=%f entropy result for cmin=%d cmax=%d" % (single_entropy, cmin, cmax))
 
 def main(args):
-    logging.basicConfig(filename='entropy_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='entropy_log.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     with open(args[1], "r") as f:
         matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
         num_cols = int(args[2]) # max number of components in a URI
