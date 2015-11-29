@@ -6,7 +6,7 @@ import logging
 # compute entropy and conditional entropy for each component index (using data) --- this would help the transparent encryption paper ONLY, not the obfuscation paper
 # compute list of MI between two names based on applying obfuscation technique at each component index
 
-def compute_conditional_entropy(pmfs, jpmfs, index = 0, acc = {}, indices = []):
+def compute_conditional_entropy(cmin, cmax, pmfs, jpmfs, index = 0, acc = {}, indices = []):
     '''
     Input:
         - list of individual pmfs: pmf(x1), pmf(x2), pmf(x3), ...
@@ -24,7 +24,7 @@ def compute_conditional_entropy(pmfs, jpmfs, index = 0, acc = {}, indices = []):
         for xi in pmfs[index]:
             new_index = tuple(indices[:] + [xi[0]])
             if new_index in jpmfs[index]:
-                tmp_index = (length - index, new_index)
+                tmp_index = (cmin, cmax, new_index)
                 if tmp_index not in acc:
                     acc[tmp_index] = math.log(jpmfs[index][new_index], 2)
                 entropy += (jpmfs[index][new_index] * acc[tmp_index])
@@ -34,9 +34,9 @@ def compute_conditional_entropy(pmfs, jpmfs, index = 0, acc = {}, indices = []):
         for xi in pmfs[index]:
             new_index = tuple(indices[:] + [xi[0]])
             if new_index in jpmfs[index]:
-                tmp_index = (length - index, new_index)
+                tmp_index = (cmin, cmax, new_index)
                 if tmp_index not in acc:
-                    acc[tmp_index] = compute_conditional_entropy(pmfs, jpmfs, index + 1, acc, list(new_index))
+                    acc[tmp_index] = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs, index + 1, acc, list(new_index))
                 entropy += (jpmfs[index][new_index] * acc[tmp_index])
         return entropy
 
@@ -135,23 +135,33 @@ def compute_distribution(pairs, cmin, cmax):
         logging.debug(str(jpmf))
         jpmfs.append(jpmf)
 
-    if len(jpmfs) > 0:
-        joint_entropy = compute_conditional_entropy(pmfs, jpmfs)
-        single_entropy = compute_entropy(pmfs[-1])
+    #print len(pmfs)
+    #print len(jpmfs)
+    #if len(pmfs) == 1:
+    #    for key in pmfs[0]:
+    #        if key not in jpmfs[0]:
+    #            raise Exception("WTF?")
+    #        elif pmfs[0][key] != jpmfs[0][key]:
+    #            raise Exception("WTF x2")
 
-        # Sanity check...
-        if (joint_entropy > single_entropy):
-            raise Exception("Impossible!")
-        logging.debug("Joint=%f and Single=%f entropy result for cmin=%d cmax=%d" % (joint_entropy, single_entropy, cmin, cmax))
+    if len(jpmfs) > 0:
+        joint_entropy = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs)
+        single_entropy = compute_entropy(pmfs[-1])
 
         print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, single_entropy, joint_entropy))
         print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, single_entropy, joint_entropy))
+
+        # Sanity check...
+        if (joint_entropy > single_entropy and joint_entropy != 0.0 and single_entropy != 0.0):
+            raise Exception("Impossible condition: The joint entropy cannot be larger than the single entropy")
+        logging.debug("Joint=%f and Single=%f entropy result for cmin=%d cmax=%d" % (joint_entropy, single_entropy, cmin, cmax))
     else:
         entropy = compute_entropy(pmfs[0])
         logging.debug("Single=%f entropy result for cmin=%d cmax=%d" % (single_entropy, cmin, cmax))
 
 def main(args):
     logging.basicConfig(filename='entropy_log.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
     with open(args[1], "r") as f:
         matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
         num_cols = int(args[2]) # max number of components in a URI

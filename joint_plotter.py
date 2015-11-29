@@ -31,13 +31,13 @@ fig, ax = plt.subplots()
 for cmin in joint_entropy:
     data = joint_entropy[cmin]
     print "Plotting %d %s" % (cmin, str(data))
-    
+
     x = range(cmin + 1, cmax + 1)
     y = map(lambda x : x[1], data)
     print x, y
     plt.plot(x, y)
 
-plt.legend(["Offset = %d" % (d) for d in joint_entropy], loc='upper left')
+#plt.legend(["Offset = %d" % (d) for d in joint_entropy], loc='upper left')
 
 ax.set_ylabel("Entropy")
 ax.set_title("URI Joint Entropy")
