@@ -40,6 +40,7 @@ for cmin in joint_entropy:
 #plt.legend(["Offset = %d" % (d) for d in joint_entropy], loc='upper left')
 
 ax.set_ylabel("Entropy")
+ax.set_xlabel("Name Component Offset")
 ax.set_title("URI Joint Entropy")
 ax.set_xticks(range(maxcol))
 

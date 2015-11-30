@@ -23,6 +23,7 @@ for line in fhandle:
 plt.close('all')
 fig, ax = plt.subplots(1)
 rects = ax.bar(single_entropy.keys(), single_entropy.values(), width, color='r')
+ax.set_xlabel("Name Component Index")
 ax.set_ylabel("Entropy")
 ax.set_title("Single Component Entropy")
 ax.set_xticks(single_entropy.keys())
