@@ -3,6 +3,50 @@ import sys
 import math
 import logging
 
+def compute_mutual_information(pairs):
+    # I(X;Y) -> H(X) - H(Y)
+    pass
+
+def compute_entropy_efficiency(pairs):
+    # Eff(X) = - \sum_{i=1}^{n} \frac{p(x_i)log(p(x_i))}{log(n)}
+    # n = number of bits in each element of the alphabet
+    pass
+
+def compute_joint_entropy(cmin, cmax, pmfs, jpmfs, index = 0, acc = {}, indices = []):
+    '''
+    Input:
+        - list of individual pmfs: pmf(x1), pmf(x2), pmf(x3), ...
+        - list of joint pmfs: pmf(x1), pmf(x2 | x1), pmf(x3 | x1 ^ x2), ...
+        - symbol index for entropy, e.g., 1
+            1 returns H(x2 | x1)
+            2 returns H(x3 | x1 ^ x2)
+    Output: joint entropy
+    '''
+    # H(Y,X) = H(X,Y) = - \sum_{x \in X} \sum_{y \in Y} p(x,y) * log2(p(x,y))
+    length = len(jpmfs)
+
+    if index == (length - 1):
+        entropy = 0
+        for xi in pmfs[index]:
+            new_index = tuple(indices[:] + [xi[0]])
+            if new_index in jpmfs[index]:
+                tmp_index = (cmin, cmax, new_index)
+                if tmp_index not in acc:
+                    acc[tmp_index] = math.log(jpmfs[index][new_index], 2)
+                entropy += (jpmfs[index][new_index] * acc[tmp_index])
+        return (entropy * -1)
+    else:
+        entropy = 0
+        for xi in pmfs[index]:
+            new_index = tuple(indices[:] + [xi[0]])
+            if new_index in jpmfs[index]:
+                tmp_index = (cmin, cmax, new_index)
+                if tmp_index not in acc:
+                    acc[tmp_index] = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs, index + 1, acc, list(new_index))
+                entropy += (jpmfs[index][new_index] * acc[tmp_index])
+        return entropy
+
+
 # compute entropy and conditional entropy for each component index (using data) --- this would help the transparent encryption paper ONLY, not the obfuscation paper
 # compute list of MI between two names based on applying obfuscation technique at each component index
 
@@ -69,15 +113,6 @@ def compute_entropy(pmf):
     for x in pmf:
         total += (pmf[x] * math.log(pmf[x], 2))
     return (total * -1)
-
-def compute_mutual_information(pairs):
-    # I(X;Y) -> H(X) - H(Y)
-    pass
-
-def compute_entropy_efficiency(pairs):
-    # Eff(X) = - \sum_{i=1}^{n} \frac{p(x_i)log(p(x_i))}{log(n)}
-    # n = number of bits in each element of the alphabet
-    pass
 
 def compute_joint_pmf(samples_list):
     '''
