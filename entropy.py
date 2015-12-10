@@ -12,7 +12,8 @@ def compute_entropy_efficiency(pairs):
     # n = number of bits in each element of the alphabet
     pass
 
-def compute_joint_entropy(pmfs, jpmfs, index = 0, acc = {}, indices = []):
+# TODO: integrate the memoization speedup
+def compute_joint_entropy(cmin, cmax, pmfs, jpmfs, index = 0, acc = {}, indices = []):
     '''
     Input:
         - TODO
@@ -24,14 +25,15 @@ def compute_joint_entropy(pmfs, jpmfs, index = 0, acc = {}, indices = []):
         entropy = 0
         for x in pmfs[index]:
             new_index = tuple(indices[:] + [x[0]])
-            entropy += (jpmfs[index][new_index]) * math.log(jpmfs[index][new_index], 2)
-        return entropy
+            if new_index in jpmfs[index]:
+                entropy += (jpmfs[index][new_index]) * math.log(jpmfs[index][new_index], 2)
+        return (entropy * -1)
     else:
         entropy = 0
         for x in pmfs[index]:
-            for x in pmfs[index]:
-                new_index = tuple(indices[:] + [x[0]])
-                entropy += compute_joint_entropy(pmfs, jpmfs, index + 1, acc, list(new_index))
+            new_index = tuple(indices[:] + [x[0]])
+            if new_index in jpmfs[index]:
+                entropy += (jpmfs[index][new_index] * compute_joint_entropy(cmin, cmax, pmfs, jpmfs, index + 1, acc, list(new_index)))
         return entropy
 
 # compute entropy and conditional entropy for each component index (using data) --- this would help the transparent encryption paper ONLY, not the obfuscation paper
@@ -50,27 +52,41 @@ def compute_conditional_entropy(cmin, cmax, pmfs, jpmfs, index = 0, acc = {}, in
     '''
     # H(Y | X) = \sum_{x \in X} p(x) H(Y | X = x)
     #          = - \sum_{x \in X} p(x) \sum_{y \in Y} p(y | x) * log2(p(y | x))
+    #          = ...
+    #          = \sum_{x \in X, y \in Y} p(x,y) log2(p(x,y) / p(x))
+
+    # OLD!
+    # length = len(jpmfs)
+    # if index == (length - 1):
+    #     entropy = 0
+    #     for xi in pmfs[index]:
+    #         new_index = tuple(indices[:] + [xi[0]])
+    #         if new_index in jpmfs[index]:
+    #             tmp_index = (cmin, cmax, new_index)
+    #             if tmp_index not in acc:
+    #                 acc[tmp_index] = math.log(jpmfs[index][new_index], 2)
+    #             entropy += (jpmfs[index][new_index] * acc[tmp_index])
+    #     return entropy
+    # else:
+    #     entropy = 0
+    #     for xi in pmfs[index]:
+    #         new_index = tuple(indices[:] + [xi[0]])
+    #         if new_index in jpmfs[index]:
+    #             tmp_index = (cmin, cmax, new_index)
+    #             if tmp_index not in acc:
+    #                 acc[tmp_index] = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs, index + 1, acc, list(new_index))
+    #             entropy += (jpmfs[index][new_index] * acc[tmp_index])
+    #     return entropy
+
     length = len(jpmfs)
     if index == (length - 1):
-        entropy = 0
-        for xi in pmfs[index]:
-            new_index = tuple(indices[:] + [xi[0]])
-            if new_index in jpmfs[index]:
-                tmp_index = (cmin, cmax, new_index)
-                if tmp_index not in acc:
-                    acc[tmp_index] = math.log(jpmfs[index][new_index], 2)
-                entropy += (jpmfs[index][new_index] * acc[tmp_index])
-        return (entropy * -1)
+        return compute_joint_entropy(cmin, cmax, pmfs, jpmfs, 0, {}, [])
     else:
-        entropy = 0
-        for xi in pmfs[index]:
-            new_index = tuple(indices[:] + [xi[0]])
-            if new_index in jpmfs[index]:
-                tmp_index = (cmin, cmax, new_index)
-                if tmp_index not in acc:
-                    acc[tmp_index] = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs, index + 1, acc, list(new_index))
-                entropy += (jpmfs[index][new_index] * acc[tmp_index])
-        return entropy
+        full_entropy = compute_joint_entropy(cmin, cmax, pmfs, jpmfs, 0, {}, [])
+        partial_entropy = compute_joint_entropy(cmin, cmax, pmfs[0:len(pmfs)-1], jpmfs[0:len(jpmfs)-1], 0, {}, [])
+
+        ## Q: can entropy be negative? no.
+        return (full_entropy - partial_entropy)
 
 def compute_pair_conditional_entropy(pmfX, pmfY, pmfXY):
     '''
@@ -102,7 +118,12 @@ def compute_entropy(pmf):
         total += (pmf[x] * math.log(pmf[x], 2))
     return (total * -1)
 
-def compute_conditional_pmf(jpmf):
+def compute_conditional_pmf(samples_list):
+    '''
+    Input: list of samples lists: [[sample-list-1], [sample-list-2], ...]
+    Output: map from (symbol1, symbol2, ...) -> probability
+    '''
+    # TODO: use Bayes' Thm
     pass
 
 def compute_joint_pmf(samples_list):
@@ -161,21 +182,13 @@ def compute_distribution(pairs, cmin, cmax):
         logging.debug(str(jpmf))
         jpmfs.append(jpmf)
 
-    #print len(pmfs)
-    #print len(jpmfs)
-    #if len(pmfs) == 1:
-    #    for key in pmfs[0]:
-    #        if key not in jpmfs[0]:
-    #            raise Exception("WTF?")
-    #        elif pmfs[0][key] != jpmfs[0][key]:
-    #            raise Exception("WTF x2")
-
     if len(jpmfs) > 0:
-        joint_entropy = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs)
         single_entropy = compute_entropy(pmfs[-1])
+        joint_entropy = compute_joint_entropy(cmin, cmax, pmfs, jpmfs)
+        conditional_entropy = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs)
 
-        print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, single_entropy, joint_entropy))
-        print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, single_entropy, joint_entropy))
+        print >> sys.stderr, ("%d,%d,%f,%f,%f" % (cmin, cmax, single_entropy, joint_entropy, conditional_entropy))
+        print >> sys.stdout, ("%d,%d,%f,%f,%f" % (cmin, cmax, single_entropy, joint_entropy, conditional_entropy))
 
         # Sanity check...
         if (joint_entropy > single_entropy and joint_entropy != 0.0 and single_entropy != 0.0):
