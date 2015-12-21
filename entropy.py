@@ -234,7 +234,6 @@ def compute_distribution(pairs, cmin, cmax):
     # for i in range(cmin, cmax):
     #     print
 
-    print pairs
 
     H = entropy(*pairs[cmin:cmax])
     Hc = conditional_entropy(pairs[cmin:cmax])
