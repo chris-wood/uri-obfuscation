@@ -238,15 +238,15 @@ def compute_distribution(pairs, cmin, cmax):
 
     H = entropy(*pairs[cmin:cmax])
     Hc = conditional_entropy(pairs[cmin:cmax])
-    print cmin, cmax, H, Hc
+    #print cmin, cmax, H, Hc
 
     # if len(jpmfs) > 0:
     #     single_entropy = compute_entropy(pmfs[-1])
     #     joint_entropy = compute_joint_entropy(cmin, cmax, pmfs, jpmfs)
     #     conditional_entropy = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs)
     #
-    #     print >> sys.stderr, ("%d,%d,%f,%f,%f" % (cmin, cmax, single_entropy, joint_entropy, conditional_entropy))
-    #     print >> sys.stdout, ("%d,%d,%f,%f,%f" % (cmin, cmax, single_entropy, joint_entropy, conditional_entropy))
+    print >> sys.stderr, ("%d,%d,%f,%f,%f" % (cmin, cmax, H, Hc))
+    print >> sys.stdout, ("%d,%d,%f,%f,%f" % (cmin, cmax, H, Hc))
     #
     #     # Sanity check...
     #     if (joint_entropy > single_entropy and joint_entropy != 0.0 and single_entropy != 0.0):
