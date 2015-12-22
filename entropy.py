@@ -246,6 +246,8 @@ def compute_distribution(pairs, cmin, cmax):
     #
     print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, H, Hc))
     print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, H, Hc))
+#    with open("out.txt", "a")  as fh:
+#        fh.write("%d,%d,%f,%d".format(cmin, cmax, H, Hc))
     #
     #     # Sanity check...
     #     if (joint_entropy > single_entropy and joint_entropy != 0.0 and single_entropy != 0.0):
