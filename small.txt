@@ -52,7 +52,7 @@
 /http/com/freewebs/heartstables/index.html
 /http/com/google/groups/group/bodog/web/bodog
 /http/fr/google/groups/group/titanpokerbonus/web/titan-poker
-/http/ee
+/http/ee/_
 /http/net/healthyfirst
 /http/de/ebay/cgi/MERCEDES-711D-TURBODIESEL-Bj-86-NUR-171-022-KM_W0QQitemZ110294426837QQcmdZViewItem
 /http/com/bossftp/file/logo.gif
