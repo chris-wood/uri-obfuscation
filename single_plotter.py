@@ -4,21 +4,22 @@ import matplotlib.pyplot as plt
 
 fname = sys.argv[1]
 fhandle = open(fname, "r")
+fname = fname[0:fname.index(".")]
 
 width = 1
 
 single_entropy = {}
-joint_entropy = {}
 
 for line in fhandle:
     data = line.split(",")
     cmin = int(data[0])
     cmax = int(data[1])
-    pmf = float(data[2])
-    jpmf = float(data[3])
+    jpmf = float(data[2])
+    cpmf = float(data[3])
 
-    single_entropy[cmax] = pmf
-    joint_entropy[(cmin, cmax)] = jpmf   
+    if cmax - cmin == 1:
+        print single_entropy
+        single_entropy[cmax] = jpmf
 
 plt.close('all')
 fig, ax = plt.subplots(1)
@@ -28,9 +29,9 @@ ax.set_ylabel("Entropy")
 ax.set_title("Single Component Entropy")
 ax.set_xticks(single_entropy.keys())
 
-plt.show()
+# plt.show()
 
-#plt.savefig(fname + ".png");
+plt.savefig(fname + ".png")
 
 # plt.plot(plotdata)
 # plt.ylabel('some sheet')
