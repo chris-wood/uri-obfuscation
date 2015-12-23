@@ -18,9 +18,8 @@ def two_entropy(X,Y):
     return np.sum(-p * np.log2(p) for p in probs)
 
 def entropy(jpmfs, *X):
-    n_insctances = len(X[0])
+    n_instances = len(X[0])
     H = 0
-    i = 0
     for classes in itertools.product(*[set(x) for x in X]):
         # Only attempt to accumulate entropy bits if the combination is actually observed.
         found = False
@@ -29,26 +28,38 @@ def entropy(jpmfs, *X):
                 found = True
 
         if found:
-            v = np.array([True] * n_insctances)
+            v = np.array([True] * n_instances)
             for predictions, c in zip(X, classes):
                 v = np.logical_and(v, predictions == c)
             p = np.mean(v)
             H += -p * np.log2(p) if p > 0 else 0
     return H
 
+def fast_entropy(jpmfs, *X):
+    n_instances = len(X[0])
+    H = 0
+    for key in jpmfs[-1]:
+        classes = key
+        v = np.array([True] * n_instances)
+        for predictions, c in zip(X, classes):
+            v = np.logical_and(v, predictions == c)
+        p = np.mean(v)
+        H += -p * np.log2(p) if p > 0 else 0
+    return H
+
 def conditional_entropy(jpmfs, Xs):
     if len(Xs) == 1:
-        return entropy(jpmfs, *Xs)
+        return fast_entropy(jpmfs, *Xs)
     else:
-        full = entropy(jpmfs, *Xs)
-        partial = entropy(jpmfs, *Xs[0:len(Xs)-1])
+        full = fast_entropy(jpmfs, *Xs)
+        partial = fast_entropy(jpmfs[0:len(jpmfs) - 1], *Xs[0:len(Xs)-1])
         return full - partial
 
 def mutual_information(X,Y,XY):
     # I(X;Y) -> H(X) - H(Y) - H(X,Y)
-    Hx = entropy(*X)
-    Hy = entropy(*Y)
-    Hxy = entropy(*XY)
+    Hx = fast_entropy(*X)
+    Hy = fast_entropy(*Y)
+    Hxy = fast_entropy(*XY)
     return (Hx - Hy + Hxy)
 
 def entropy_efficiency(pairs):
@@ -110,12 +121,12 @@ def compute_distribution(pairs, cmin, cmax):
 
     # print cmin, cmax, pairs
 
-    pmfs = []
-    for i in range(cmin, cmax):
-        pmf = compute_pmf(pairs[i])
-        logging.debug(str(pmf))
-        pmfs.append(pmf)
-
+    # pmfs = []
+    # for i in range(cmin, cmax):
+    #     pmf = compute_pmf(pairs[i])
+    #     logging.debug(str(pmf))
+    #     pmfs.append(pmf)
+    #
 
     jpmfs = []
     for i in range(cmin, cmax):
@@ -123,7 +134,7 @@ def compute_distribution(pairs, cmin, cmax):
         logging.debug(str(jpmf))
         jpmfs.append(jpmf)
 
-    H = entropy(jpmfs, *pairs[cmin:cmax])
+    H = fast_entropy(jpmfs, *pairs[cmin:cmax])
     Hc = conditional_entropy(jpmfs, pairs[cmin:cmax])
 
     print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, H, Hc))
