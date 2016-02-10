@@ -7,6 +7,13 @@ from cryptography.hazmat.primitives import hashes, hmac
 
 backend = default_backend()
 
+### HASH FUNCTIONS TO TRY
+# 0. CRC16 (16 bits)
+# 1. CRC32 (32 bits)
+# 2. Siphash (64 bits)
+# 3. MurmurHash (32 bits)
+# 4. SHA256 (256 bits)
+
 class Hasher(object):
     pass
 

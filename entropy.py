@@ -171,6 +171,7 @@ def main(args):
                 # For each column in the matrix
                 for c in range(cmax):
                     column = map(lambda row : row[c], filter(lambda row : len(row) > cmax, matrix))
+                    print column
                     columns.append(np.array(column))
 
                 # Compute the distribution information from this column set

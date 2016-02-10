@@ -31,7 +31,7 @@ ax.set_xticks(single_entropy.keys())
 
 # plt.show()
 
-plt.savefig(fname + ".png")
+plt.savefig(fname + ".eps")
 
 # plt.plot(plotdata)
 # plt.ylabel('some sheet')

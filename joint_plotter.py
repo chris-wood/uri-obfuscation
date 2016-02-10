@@ -80,7 +80,7 @@ ax.set_xticks(range(maxcol))
 
 #plt.show()
 
-plt.savefig(fname + ".png")
+plt.savefig(fname + ".eps")
 
 # plt.plot(plotdata)
 # plt.ylabel('some sheet')
