@@ -1,0 +1,5 @@
+usage: python __main__ -a ALG -i [-f] INDEX
+
+   algorithms: CRC16 | CRC32 | MMH3 | SHA256 | AESGCM | AESCBC | SIPHASH
+   index:      the integer index after which obfuscation should be applied
+   flatten:    boolean indicating if the arguments should be flattened
