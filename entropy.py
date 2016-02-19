@@ -119,43 +119,24 @@ def compute_distribution(pairs, cmin, cmax):
     logging.debug("Starting run for cmin=%d cmax=%d" % (cmin, cmax))
     logging.debug("Pairs = %s" % (str(pairs)))
 
-    # print cmin, cmax, pairs
-
-    # pmfs = []
-    # for i in range(cmin, cmax):
-    #     pmf = compute_pmf(pairs[i])
-    #     logging.debug(str(pmf))
-    #     pmfs.append(pmf)
-    #
-
+    # jpmfs holds the joint PMFs from cmin:cmin+1, cmin:cmin+2, ..., cmin:cmax
+    # Each joint PMF is a map where keys are tuples and output is a probability (based on frequency of occurrence)
     jpmfs = []
     for i in range(cmin, cmax):
         jpmf = compute_joint_pmf(pairs[cmin:(i+1)])
         logging.debug(str(jpmf))
         jpmfs.append(jpmf)
 
-    H = fast_entropy(jpmfs, *pairs[cmin:cmax])
+    # Compute the joint and conditional entropy (they are not the same!)
+    Hj = fast_entropy(jpmfs, *pairs[cmin:cmax])
     Hc = conditional_entropy(jpmfs, pairs[cmin:cmax])
 
-    print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, H, Hc))
-    print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, H, Hc))
-
-    # if len(jpmfs) > 0:
-    #     single_entropy = compute_entropy(pmfs[-1])
-    #     joint_entropy = compute_joint_entropy(cmin, cmax, pmfs, jpmfs)
-    #     conditional_entropy = compute_conditional_entropy(cmin, cmax, pmfs, jpmfs)
-    #
-    #
-    #     # Sanity check...
-    #     if (joint_entropy > single_entropy and joint_entropy != 0.0 and single_entropy != 0.0):
-    #         raise Exception("Impossible condition: The joint entropy cannot be larger than the single entropy")
-    #     logging.debug("Joint=%f and Single=%f entropy result for cmin=%d cmax=%d" % (joint_entropy, single_entropy, cmin, cmax))
-    # else:
-    #     entropy = compute_entropy(pmfs[0])
-    #     logging.debug("Single=%f entropy result for cmin=%d cmax=%d" % (single_entropy, cmin, cmax))
+    # Save the output
+    print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, Hj, Hc))
+    print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, Hj, Hc))
 
 def main(args):
-    logging.basicConfig(filename='entropy_log.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename=args[1] + ".log", level=logging.DEBUG, format='%(message)s')
 
     with open(args[1], "r") as f:
         matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
@@ -165,16 +146,18 @@ def main(args):
         # For each possible column slice
         for cmin in range(0, num_cols):
             for cmax in range(cmin + 1, num_cols + 1):
-                # This will hold the columns of the matrix
+                # This will hold the columns of the matrix (the URI components)
                 columns = []
 
                 # For each column in the matrix
                 for c in range(cmax):
-                    column = map(lambda row : row[c], filter(lambda row : len(row) > cmax, matrix))
-                    print column
+                    column = map(lambda row : row[c], filter(lambda row : len(row) >= cmax, matrix))
                     columns.append(np.array(column))
 
-                # Compute the distribution information from this column set
+                # Compute the distribution information from this column set (matrix)
+                # The rows are the unique URIs
+                # The columns are the column values of each URI
+                # =>  row i, column j = j-th component of the i-th URI
                 compute_distribution(columns, cmin, cmax)
 
 if __name__ == "__main__":
