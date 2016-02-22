@@ -1,6 +1,7 @@
 import sys
 import os
 import getopt
+import base64
 
 import crc16
 import binascii
@@ -91,6 +92,8 @@ class ObfuscatorAesCBC(Obfuscator):
 
     def obfuscate(self, blob):
         global backend
+        self.key = os.urandom(32)
+        self.iv = os.urandom(16)
         cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv), backend=backend)
         encryptor = cipher.encryptor()
 
@@ -98,20 +101,20 @@ class ObfuscatorAesCBC(Obfuscator):
         pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
 
         ct = encryptor.update(pad(blob)) + encryptor.finalize()
-        return "".join([self.iv, ct])
+        return base64.b64encode("".join([self.iv, ct]))
 
 class ObfuscatorAesGCM(Obfuscator):
     def __init__(self, key = "", iv = ""):
         Obfuscator.__init__(self, self.__class__.__name__)
-        self.key = os.urandom(32)
-        self.iv = os.urandom(16)
 
     def obfuscate(self, blob):
         global backend
+        self.key = os.urandom(32)
+        self.iv = os.urandom(16)
         cipher = Cipher(algorithms.AES(self.key), modes.GCM(self.iv), backend=backend)
         encryptor = cipher.encryptor()
         ct = encryptor.update(blob) + encryptor.finalize()
-        return "".join([self.iv, ct, encryptor.tag])
+        return base64.b64encode("".join([self.iv, ct, encryptor.tag]))
 
 class URI(object):
     def __init__(self, uri_string, obfuscator):
