@@ -14,10 +14,7 @@ HASH48SIZE = 6
 HASH64SIZE = 8
 HASH128SIZE = 16
 HASH160SIZE = 20
-HASH224SIZE = 28
 HASH256SIZE = 32
-HASH384SIZE = 48
-HASH512SIZE = 64
 
 tlv = []
 hash16 = []
@@ -26,10 +23,7 @@ hash48 = []
 hash64 = []
 hash128 = []
 hash160 = []
-hash224 = []
 hash256 = []
-hash384 = []
-hash512 = []
 
 
 def usage():
@@ -85,44 +79,32 @@ def processFile(filePath):
             tlv.append(tlvEncodingSize)
 
             # 16-bit encoding size.
-            hash16EncodingSize = HASH16SIZE * len(name)
+            hash16EncodingSize = (HASH16SIZE + 2) * len(name)
             hash16.append(hash16EncodingSize)
 
             # 32-bit encoding size.
-            hash32EncodingSize = HASH32SIZE * len(name)
+            hash32EncodingSize = (HASH32SIZE + 2) * len(name)
             hash32.append(hash32EncodingSize)
 
             # 48-bit encoding size.
-            hash48EncodingSize = HASH48SIZE * len(name)
+            hash48EncodingSize = (HASH48SIZE + 2) * len(name)
             hash48.append(hash48EncodingSize)
 
             # 64-bit encoding size.
-            hash64EncodingSize = HASH64SIZE * len(name)
+            hash64EncodingSize = (HASH64SIZE + 2) * len(name)
             hash64.append(hash64EncodingSize)
 
             # 128-bit encoding size.
-            hash128EncodingSize = HASH128SIZE * len(name)
+            hash128EncodingSize = (HASH128SIZE + 2) * len(name)
             hash128.append(hash128EncodingSize)
 
             # 160-bit encoding size.
-            hash160EncodingSize = HASH160SIZE * len(name)
+            hash160EncodingSize = (HASH160SIZE + 2) * len(name)
             hash160.append(hash160EncodingSize)
 
-            # 224-bit encoding size.
-            hash224EncodingSize = HASH224SIZE * len(name)
-            hash224.append(hash224EncodingSize)
-
             # 256-bit encoding size.
-            hash256EncodingSize = HASH256SIZE * len(name)
+            hash256EncodingSize = (HASH256SIZE + 2) * len(name)
             hash256.append(hash256EncodingSize)
-
-            # 384-bit encoding size.
-            hash384EncodingSize = HASH384SIZE * len(name)
-            hash384.append(hash384EncodingSize)
-
-            # 512-bit encoding size.
-            hash512EncodingSize = HASH512SIZE * len(name)
-            hash512.append(hash512EncodingSize)
 
 
 def plotResults():
@@ -135,10 +117,7 @@ def plotResults():
     plot(hash64, "64-bit format")
     plot(hash128, "128-bit format")
     plot(hash160, "160-bit format")
-    plot(hash224, "224-bit format")
     plot(hash256, "256-bit format")
-    plot(hash384, "384-bit format")
-    plot(hash512, "512-bit format")
 
     # Set grid, axis labels, and legend.
     plt.grid(True)
