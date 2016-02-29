@@ -190,7 +190,7 @@ def plotMeanSTD():
 
     # Add some text for labels, title and axes ticks.
     ax.grid(True)
-    ax.set_ylabel('Name length (bytes)')
+    ax.set_ylabel('Name length increment (%)')
     ax.set_xticks(ind + (width * 1.5))
     ax.set_xticklabels(('16-bit', '32-bit', '48-bit', '64-bit', '128-bit',
                         '160-bit'))
