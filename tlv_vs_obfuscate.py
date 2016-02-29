@@ -3,6 +3,7 @@ import getopt
 import os
 import os.path
 import numpy as np
+import statistics as stat
 from scipy.interpolate import UnivariateSpline
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -14,7 +15,6 @@ HASH48SIZE = 6
 HASH64SIZE = 8
 HASH128SIZE = 16
 HASH160SIZE = 20
-HASH256SIZE = 32
 
 tlv = []
 hash16 = []
@@ -23,7 +23,6 @@ hash48 = []
 hash64 = []
 hash128 = []
 hash160 = []
-hash256 = []
 
 
 def usage():
@@ -102,12 +101,13 @@ def processFile(filePath):
             hash160EncodingSize = (HASH160SIZE + 2) * len(name)
             hash160.append(hash160EncodingSize)
 
-            # 256-bit encoding size.
-            hash256EncodingSize = (HASH256SIZE + 2) * len(name)
-            hash256.append(hash256EncodingSize)
-
 
 def plotResults():
+    plotPDF()
+    plotMeanSTD()
+
+
+def plotPDF():
     plt.hold(True)
 
     plot(tlv, "TLV format")
@@ -117,7 +117,6 @@ def plotResults():
     plot(hash64, "64-bit format")
     plot(hash128, "128-bit format")
     plot(hash160, "160-bit format")
-    plot(hash256, "256-bit format")
 
     # Set grid, axis labels, and legend.
     plt.grid(True)
@@ -126,9 +125,82 @@ def plotResults():
     plt.legend()
 
     # Save to file.
-    pp = PdfPages("tlv_vs_obfuscate.pdf")
+    pp = PdfPages("tlv_vs_obfuscate_PDF.pdf")
     plt.savefig(pp, format='pdf')
     pp.close()
+    plt.cla()
+
+
+def plotMeanSTD():
+    width = 0.35
+    xShift = -0.20
+    mean = []
+    meanDiff = []
+    std = []
+
+    # Calculate means.
+    mean.append(stat.mean(tlv))
+    mean.append(stat.mean(hash16))
+    mean.append(stat.mean(hash32))
+    mean.append(stat.mean(hash48))
+    mean.append(stat.mean(hash64))
+    mean.append(stat.mean(hash128))
+    mean.append(stat.mean(hash160))
+
+    # Calculate means difference.
+    meanDiff.append(((mean[1] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[2] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[3] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[4] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[5] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[6] - mean[0]) / mean[0]) * 100)
+
+    # Calculate STD.
+    std.append(stat.stdev(tlv))
+    std.append(stat.stdev(hash16))
+    std.append(stat.stdev(hash32))
+    std.append(stat.stdev(hash48))
+    std.append(stat.stdev(hash64))
+    std.append(stat.stdev(hash128))
+    std.append(stat.stdev(hash160))
+
+    # Plot name lengths.
+    fig, ax = plt.subplots()
+    ind = np.arange(len(mean))
+    rects = ax.bar(ind + width, mean, width, color='#0072bd', yerr=std)
+
+    # Add some text for labels, title and axes ticks.
+    ax.grid(True)
+    ax.set_ylabel('Name length (bytes)')
+    ax.set_xticks(ind + (width * 1.5))
+    ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
+                        '128-bit', '160-bit'))
+    autoLabel(ax, rects, 3, xShift)
+
+    # Save to file.
+    pp = PdfPages('tlv_vs_obfuscate_NameLengths.pdf')
+    plt.savefig(pp, format='pdf')
+    pp.close()
+    plt.cla()
+
+    # Plot name length difference.
+    fig, ax = plt.subplots()
+    ind = np.arange(len(meanDiff))
+    rects = ax.bar(ind + width, meanDiff, width, color='#d95319')
+
+    # Add some text for labels, title and axes ticks.
+    ax.grid(True)
+    ax.set_ylabel('Name length (bytes)')
+    ax.set_xticks(ind + (width * 1.5))
+    ax.set_xticklabels(('16-bit', '32-bit', '48-bit', '64-bit', '128-bit',
+                        '160-bit'))
+    autoLabel(ax, rects, 10, 0)
+
+    # Save to file.
+    pp = PdfPages('tlv_vs_obfuscate_NameLengthsDiff.pdf')
+    plt.savefig(pp, format='pdf')
+    pp.close()
+    plt.cla()
 
 
 def plot(sizes, legendText):
@@ -138,6 +210,14 @@ def plot(sizes, legendText):
     f = UnivariateSpline(x, p, s=n)
     plt.plot(x, f(x), label=legendText)
 
+
+def autoLabel(ax, rects, heightDiff, xShift):
+    # Attach some text labels.
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width()/2. + xShift, height + heightDiff,
+                '%d' % int(height),
+                ha='center', va='bottom')
 
 if __name__ == "__main__":
     main(sys.argv[1:])
