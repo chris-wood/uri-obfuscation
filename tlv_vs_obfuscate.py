@@ -152,6 +152,7 @@ def plotResults(outputType):
 
 
 def plotResultsFromText(inputPath):
+    print "Reading results in text format..."
     with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     tlv.extend(tmp)
@@ -185,6 +186,7 @@ def plotResultsFromText(inputPath):
 
 
 def plotPDF():
+    print "Plotting PDF..."
     plt.hold(True)
 
     plot(tlv, "TLV format")
@@ -215,6 +217,8 @@ def plotMeanSTD():
     meanDiff = []
     std = []
 
+    print "Calculating means, mean differences, and standard deviations..."
+
     # Calculate means.
     mean.append(stat.mean(tlv))
     mean.append(stat.mean(hash16))
@@ -242,6 +246,8 @@ def plotMeanSTD():
     std.append(stat.stdev(hash160))
 
     # Plot name lengths.
+    print "Plotting name lengths..."
+
     fig, ax = plt.subplots()
     ind = np.arange(len(mean))
     rects = ax.bar(ind + width, mean, width, color='#0072bd', yerr=std)
@@ -261,6 +267,8 @@ def plotMeanSTD():
     plt.cla()
 
     # Plot name length difference.
+    print "Plotting name length differences..."
+
     fig, ax = plt.subplots()
     ind = np.arange(len(meanDiff))
     rects = ax.bar(ind + width, meanDiff, width, color='#d95319')
@@ -298,6 +306,7 @@ def autoLabel(ax, rects, heightDiff, xShift):
 
 
 def saveResults():
+    print "Saving results in text format..."
     if os.path.isdir("tlv_vs_obfuscate_output"):
         shutil.rmtree("tlv_vs_obfuscate_output", ignore_errors=True)
     os.makedirs("tlv_vs_obfuscate_output")
