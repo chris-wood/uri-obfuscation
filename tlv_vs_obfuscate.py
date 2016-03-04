@@ -152,31 +152,38 @@ def plotResults(outputType):
 
 
 def plotResultsFromText(inputPath):
-    print "Reading results in text format..."
+    print "Reading results in text format"
+    print "\t" + os.path.join(inputPath, "tlv.out") + "..."
     with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     tlv.extend(tmp)
 
+    print "\t" + os.path.join(inputPath, "hash16.out") + "..."
     with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     hash16.extend(tmp)
 
+    print "\t" + os.path.join(inputPath, "hash32.out") + "..."
     with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     hash32.extend(tmp)
 
+    print "\t" + os.path.join(inputPath, "hash48.out") + "..."
     with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     hash48.extend(tmp)
 
+    print "\t" + os.path.join(inputPath, "hash64.out") + "..."
     with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     hash64.extend(tmp)
 
+    print "\t" + os.path.join(inputPath, "hash128.out") + "..."
     with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     hash128.extend(tmp)
 
+    print "\t" + os.path.join(inputPath, "hash160.out") + "..."
     with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
         tmp = pickle.load(inFile)
     hash160.extend(tmp)
@@ -311,24 +318,31 @@ def saveResults():
         shutil.rmtree("tlv_vs_obfuscate_output", ignore_errors=True)
     os.makedirs("tlv_vs_obfuscate_output")
 
+    print "\t./tlv_vs_obfuscate_output/tlv.out..."
     with open("tlv_vs_obfuscate_output/tlv.out", "w+") as outFile:
         pickle.dump(tlv, outFile)
 
+    print "\t./tlv_vs_obfuscate_output/hash16.out..."
     with open("tlv_vs_obfuscate_output/hash16.out", "w+") as outFile:
         pickle.dump(hash16, outFile)
 
+    print "\t./tlv_vs_obfuscate_output/hash32.out..."
     with open("tlv_vs_obfuscate_output/hash32.out", "w+") as outFile:
         pickle.dump(hash32, outFile)
 
+    print "\t./tlv_vs_obfuscate_output/hash48.out..."
     with open("tlv_vs_obfuscate_output/hash48.out", "w+") as outFile:
         pickle.dump(hash48, outFile)
 
+    print "\t./tlv_vs_obfuscate_output/hash64.out..."
     with open("tlv_vs_obfuscate_output/hash64.out", "w+") as outFile:
         pickle.dump(hash64, outFile)
 
+    print "\t./tlv_vs_obfuscate_output/hash128.out..."
     with open("tlv_vs_obfuscate_output/hash128.out", "w+") as outFile:
         pickle.dump(hash128, outFile)
 
+    print "\t./tlv_vs_obfuscate_output/hash160.out..."
     with open("tlv_vs_obfuscate_output/hash160.out", "w+") as outFile:
         pickle.dump(hash160, outFile)
 
