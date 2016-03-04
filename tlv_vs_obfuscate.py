@@ -4,6 +4,7 @@ import os
 import os.path
 import shutil
 import pickle
+import time
 import numpy as np
 import statistics as stat
 from scipy.interpolate import UnivariateSpline
@@ -324,4 +325,6 @@ def saveResults():
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     main(sys.argv[1:])
+    print("--- %s seconds ---" % (time.time() - start_time))
