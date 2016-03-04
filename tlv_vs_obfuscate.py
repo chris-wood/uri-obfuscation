@@ -2,6 +2,8 @@ import sys
 import getopt
 import os
 import os.path
+import shutil
+import pickle
 import numpy as np
 import statistics as stat
 from scipy.interpolate import UnivariateSpline
@@ -26,13 +28,28 @@ hash160 = []
 
 
 def usage():
-    print "python tlv_vs_obfuscate.py -i <inputPath>"
+    print "python tlv_vs_obfuscate.py -i <inputPath> -o <outputType> -p"
+    print ""
+    print "\t-i <inputPath>"
+    print "\t\tis the path of a file containing the URI list, or a path to a"
+    print "\t\tdirectory with a lot of files containing URL lists. If -p is"
+    print "\t\tprovided, <inputPath> is the path of the output files to be"
+    print "\t\tplotted."
+    print "\t-o <outputType>"
+    print "\t\tis optional and it is either 'text' or 'plot'. 'text' outputs the"
+    print "\t\tgraphs in text format to be plotted later, while 'plot' (default)"
+    print "\t\tplots the result."
+    print "\t-p"
+    print "\t\tis optional and if present, tlv_vs_obfuscate plots the text"
+    print "\t\toutput provided in <inputPath> directory."
 
 
 def main(argv):
     inputPath = ""
+    outputType = "plot"
+    plot = False
     try:
-        opts, args = getopt.getopt(argv,"hi:", ["ipath="])
+        opts, args = getopt.getopt(argv,"hi:o:p", ["ipath=", "otype="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -43,30 +60,53 @@ def main(argv):
             sys.exit()
         elif opt in ("-i", "--ipath"):
             inputPath = arg
+        elif opt in ("-o", "--otype"):
+            outputType = arg
+        elif opt == "-p":
+            plot = True
         else:
             usage()
             sys.exit(2)
 
     if inputPath == "":
-        print "Missing input path"
+        print "Missing input path."
         usage()
         sys.exit(2)
 
-    if os.path.isfile(inputPath):
-        processFile(inputPath)
-    else:
-        for filePath in [os.path.join(inputPath, f) for f in
-                         os.listdir(inputPath) if
-                         os.path.isfile(os.path.join(inputPath, f))]:
-            processFile(filePath)
+    if outputType not in ("text", "plot"):
+        print "Output type must be either 'text' or 'plot'."
+        usage()
+        sys.exit(2)
 
-    plotResults()
+    if outputType == "text" and plot == True:
+        print "Output type 'plot' cannot be use with -p."
+        usage()
+        sys.exit(2)
+
+    if plot == True and os.path.isfile(inputPath):
+        print "If -p is used, <inputPath> must be a directory."
+        usage()
+        sys.exit(2)
+
+    if plot == False:
+        if os.path.isfile(inputPath):
+            processFile(inputPath)
+        else:
+            for filePath in [os.path.join(inputPath, f) for f in
+                             os.listdir(inputPath) if
+                             os.path.isfile(os.path.join(inputPath, f))]:
+                processFile(filePath)
+
+        plotResults(outputType)
+    else:
+        plotResultsFromText(inputPath)
+
 
 
 def processFile(filePath):
     print "Processing '" + filePath + "'..."
-    with open(filePath, "r") as f:
-        for line in f:
+    with open(filePath, "r") as inFile:
+        for line in inFile:
             name = line.split("/")
 
             # TLV encoding size.
@@ -102,7 +142,43 @@ def processFile(filePath):
             hash160.append(hash160EncodingSize)
 
 
-def plotResults():
+def plotResults(outputType):
+    if outputType == "plot":
+        plotPDF()
+        plotMeanSTD()
+    elif outputType == "text":
+        saveResults()
+
+
+def plotResultsFromText(inputPath):
+    with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    tlv.extend(tmp)
+
+    with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    hash16.extend(tmp)
+
+    with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    hash32.extend(tmp)
+
+    with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    hash48.extend(tmp)
+
+    with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    hash64.extend(tmp)
+
+    with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    hash128.extend(tmp)
+
+    with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
+        tmp = pickle.load(inFile)
+    hash160.extend(tmp)
+
     plotPDF()
     plotMeanSTD()
 
@@ -218,6 +294,34 @@ def autoLabel(ax, rects, heightDiff, xShift):
         ax.text(rect.get_x() + rect.get_width()/2. + xShift, height + heightDiff,
                 '%d' % int(height),
                 ha='center', va='bottom')
+
+
+def saveResults():
+    if os.path.isdir("tlv_vs_obfuscate_output"):
+        shutil.rmtree("tlv_vs_obfuscate_output", ignore_errors=True)
+    os.makedirs("tlv_vs_obfuscate_output")
+
+    with open("tlv_vs_obfuscate_output/tlv.out", "w+") as outFile:
+        pickle.dump(tlv, outFile)
+
+    with open("tlv_vs_obfuscate_output/hash16.out", "w+") as outFile:
+        pickle.dump(hash16, outFile)
+
+    with open("tlv_vs_obfuscate_output/hash32.out", "w+") as outFile:
+        pickle.dump(hash32, outFile)
+
+    with open("tlv_vs_obfuscate_output/hash48.out", "w+") as outFile:
+        pickle.dump(hash48, outFile)
+
+    with open("tlv_vs_obfuscate_output/hash64.out", "w+") as outFile:
+        pickle.dump(hash64, outFile)
+
+    with open("tlv_vs_obfuscate_output/hash128.out", "w+") as outFile:
+        pickle.dump(hash128, outFile)
+
+    with open("tlv_vs_obfuscate_output/hash160.out", "w+") as outFile:
+        pickle.dump(hash160, outFile)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
