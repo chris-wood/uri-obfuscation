@@ -154,7 +154,8 @@ def processFile(filePath):
 
 def plotResults(outputType, verbose):
     if outputType == "plot":
-        plotPDF()
+        if verbose:
+            plotPDF()
         mean, meanDiff, std = calculateMeanSTD()
         plotMeanSTD(mean, meanDiff, std)
     elif outputType == "text":
@@ -201,7 +202,6 @@ def plotResultsFromText(inputPath, verbose):
 
         plotPDF()
         mean, meanDiff, std = calculateMeanSTD()
-        plotMeanSTD(mean, meanDiff, std)
     else:
         print "\t" + os.path.join(inputPath, "mean.out") + "..."
         with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
@@ -215,7 +215,7 @@ def plotResultsFromText(inputPath, verbose):
         with open(os.path.join(inputPath, "std.out"), "r") as inFile:
             std = pickle.load(inFile)
 
-        plotMeanSTD(mean, meanDiff, std)
+    plotMeanSTD(mean, meanDiff, std)
 
 
 def plotPDF():
