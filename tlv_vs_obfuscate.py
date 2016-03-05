@@ -29,7 +29,7 @@ hash160 = []
 
 
 def usage():
-    print "python tlv_vs_obfuscate.py -i <inputPath> -o <outputType> -p"
+    print "python tlv_vs_obfuscate.py -i <inputPath> -o <outputType> -p -v"
     print ""
     print "\t-i <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
@@ -43,14 +43,21 @@ def usage():
     print "\t-p"
     print "\t\tis optional and if present, tlv_vs_obfuscate plots the text"
     print "\t\toutput provided in <inputPath> directory."
+    print "\t-v"
+    print "\t\tis optional and only takes effect if the output type is 'text' or"
+    print "\t\t-p is used. In this case, the output files will contain all"
+    print "\t\tdistribution data. If this option is not provided (default),"
+    print "\t\ttlv_cs_obfuscate will only saves the mean and standard deviation"
+    print "\t\tof the results."
 
 
 def main(argv):
     inputPath = ""
     outputType = "plot"
     plot = False
+    verbose = False
     try:
-        opts, args = getopt.getopt(argv,"hi:o:p", ["ipath=", "otype="])
+        opts, args = getopt.getopt(argv,"hi:o:pv", ["ipath=", "otype="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -65,6 +72,8 @@ def main(argv):
             outputType = arg
         elif opt == "-p":
             plot = True
+        elif opt == "-v":
+            verbose = True
         else:
             usage()
             sys.exit(2)
@@ -98,9 +107,9 @@ def main(argv):
                              os.path.isfile(os.path.join(inputPath, f))]:
                 processFile(filePath)
 
-        plotResults(outputType)
+        plotResults(outputType, verbose)
     else:
-        plotResultsFromText(inputPath)
+        plotResultsFromText(inputPath, verbose)
 
 
 
@@ -143,53 +152,70 @@ def processFile(filePath):
             hash160.append(hash160EncodingSize)
 
 
-def plotResults(outputType):
+def plotResults(outputType, verbose):
     if outputType == "plot":
         plotPDF()
-        plotMeanSTD()
+        mean, meanDiff, std = calculateMeanSTD()
+        plotMeanSTD(mean, meanDiff, std)
     elif outputType == "text":
-        saveResults()
+        saveResults(verbose)
 
 
-def plotResultsFromText(inputPath):
-    print "Reading results in text format"
-    print "\t" + os.path.join(inputPath, "tlv.out") + "..."
-    with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    tlv.extend(tmp)
+def plotResultsFromText(inputPath, verbose):
+    if verbose:
+        print "Reading verbose results in text format"
+        print "\t" + os.path.join(inputPath, "tlv.out") + "..."
+        with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        tlv.extend(tmp)
 
-    print "\t" + os.path.join(inputPath, "hash16.out") + "..."
-    with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    hash16.extend(tmp)
+        print "\t" + os.path.join(inputPath, "hash16.out") + "..."
+        with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        hash16.extend(tmp)
 
-    print "\t" + os.path.join(inputPath, "hash32.out") + "..."
-    with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    hash32.extend(tmp)
+        print "\t" + os.path.join(inputPath, "hash32.out") + "..."
+        with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        hash32.extend(tmp)
 
-    print "\t" + os.path.join(inputPath, "hash48.out") + "..."
-    with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    hash48.extend(tmp)
+        print "\t" + os.path.join(inputPath, "hash48.out") + "..."
+        with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        hash48.extend(tmp)
 
-    print "\t" + os.path.join(inputPath, "hash64.out") + "..."
-    with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    hash64.extend(tmp)
+        print "\t" + os.path.join(inputPath, "hash64.out") + "..."
+        with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        hash64.extend(tmp)
 
-    print "\t" + os.path.join(inputPath, "hash128.out") + "..."
-    with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    hash128.extend(tmp)
+        print "\t" + os.path.join(inputPath, "hash128.out") + "..."
+        with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        hash128.extend(tmp)
 
-    print "\t" + os.path.join(inputPath, "hash160.out") + "..."
-    with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
-        tmp = pickle.load(inFile)
-    hash160.extend(tmp)
+        print "\t" + os.path.join(inputPath, "hash160.out") + "..."
+        with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+        hash160.extend(tmp)
 
-    plotPDF()
-    plotMeanSTD()
+        plotPDF()
+        mean, meanDiff, std = calculateMeanSTD()
+        plotMeanSTD(mean, meanDiff, std)
+    else:
+        print "\t" + os.path.join(inputPath, "mean.out") + "..."
+        with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
+            mean = pickle.load(inFile)
+
+        print "\t" + os.path.join(inputPath, "meanDiff.out") + "..."
+        with open(os.path.join(inputPath, "meanDiff.out"), "r") as inFile:
+            meanDiff = pickle.load(inFile)
+
+        print "\t" + os.path.join(inputPath, "std.out") + "..."
+        with open(os.path.join(inputPath, "std.out"), "r") as inFile:
+            std = pickle.load(inFile)
+
+        plotMeanSTD(mean, meanDiff, std)
 
 
 def plotPDF():
@@ -217,40 +243,9 @@ def plotPDF():
     plt.cla()
 
 
-def plotMeanSTD():
+def plotMeanSTD(mean, meanDiff, std):
     width = 0.35
     xShift = -0.20
-    mean = []
-    meanDiff = []
-    std = []
-
-    print "Calculating means, mean differences, and standard deviations..."
-
-    # Calculate means.
-    mean.append(stat.mean(tlv))
-    mean.append(stat.mean(hash16))
-    mean.append(stat.mean(hash32))
-    mean.append(stat.mean(hash48))
-    mean.append(stat.mean(hash64))
-    mean.append(stat.mean(hash128))
-    mean.append(stat.mean(hash160))
-
-    # Calculate means difference.
-    meanDiff.append(((mean[1] - mean[0]) / mean[0]) * 100)
-    meanDiff.append(((mean[2] - mean[0]) / mean[0]) * 100)
-    meanDiff.append(((mean[3] - mean[0]) / mean[0]) * 100)
-    meanDiff.append(((mean[4] - mean[0]) / mean[0]) * 100)
-    meanDiff.append(((mean[5] - mean[0]) / mean[0]) * 100)
-    meanDiff.append(((mean[6] - mean[0]) / mean[0]) * 100)
-
-    # Calculate STD.
-    std.append(stat.stdev(tlv))
-    std.append(stat.stdev(hash16))
-    std.append(stat.stdev(hash32))
-    std.append(stat.stdev(hash48))
-    std.append(stat.stdev(hash64))
-    std.append(stat.stdev(hash128))
-    std.append(stat.stdev(hash160))
 
     # Plot name lengths.
     print "Plotting name lengths..."
@@ -312,39 +307,92 @@ def autoLabel(ax, rects, heightDiff, xShift):
                 ha='center', va='bottom')
 
 
-def saveResults():
-    print "Saving results in text format..."
+def saveResults(verbose):
     if os.path.isdir("tlv_vs_obfuscate_output"):
         shutil.rmtree("tlv_vs_obfuscate_output", ignore_errors=True)
     os.makedirs("tlv_vs_obfuscate_output")
 
-    print "\t./tlv_vs_obfuscate_output/tlv.out..."
-    with open("tlv_vs_obfuscate_output/tlv.out", "w+") as outFile:
-        pickle.dump(tlv, outFile)
+    if verbose:
+        print "Saving verbose results in text format..."
 
-    print "\t./tlv_vs_obfuscate_output/hash16.out..."
-    with open("tlv_vs_obfuscate_output/hash16.out", "w+") as outFile:
-        pickle.dump(hash16, outFile)
+        print "\t./tlv_vs_obfuscate_output/tlv.out..."
+        with open("tlv_vs_obfuscate_output/tlv.out", "w+") as outFile:
+            pickle.dump(tlv, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/hash32.out..."
-    with open("tlv_vs_obfuscate_output/hash32.out", "w+") as outFile:
-        pickle.dump(hash32, outFile)
+        print "\t./tlv_vs_obfuscate_output/hash16.out..."
+        with open("tlv_vs_obfuscate_output/hash16.out", "w+") as outFile:
+            pickle.dump(hash16, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/hash48.out..."
-    with open("tlv_vs_obfuscate_output/hash48.out", "w+") as outFile:
-        pickle.dump(hash48, outFile)
+        print "\t./tlv_vs_obfuscate_output/hash32.out..."
+        with open("tlv_vs_obfuscate_output/hash32.out", "w+") as outFile:
+            pickle.dump(hash32, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/hash64.out..."
-    with open("tlv_vs_obfuscate_output/hash64.out", "w+") as outFile:
-        pickle.dump(hash64, outFile)
+        print "\t./tlv_vs_obfuscate_output/hash48.out..."
+        with open("tlv_vs_obfuscate_output/hash48.out", "w+") as outFile:
+            pickle.dump(hash48, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/hash128.out..."
-    with open("tlv_vs_obfuscate_output/hash128.out", "w+") as outFile:
-        pickle.dump(hash128, outFile)
+        print "\t./tlv_vs_obfuscate_output/hash64.out..."
+        with open("tlv_vs_obfuscate_output/hash64.out", "w+") as outFile:
+            pickle.dump(hash64, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/hash160.out..."
-    with open("tlv_vs_obfuscate_output/hash160.out", "w+") as outFile:
-        pickle.dump(hash160, outFile)
+        print "\t./tlv_vs_obfuscate_output/hash128.out..."
+        with open("tlv_vs_obfuscate_output/hash128.out", "w+") as outFile:
+            pickle.dump(hash128, outFile)
+
+        print "\t./tlv_vs_obfuscate_output/hash160.out..."
+        with open("tlv_vs_obfuscate_output/hash160.out", "w+") as outFile:
+            pickle.dump(hash160, outFile)
+    else:
+        mean, meanDiff, std = calculateMeanSTD()
+
+        print "Saving non-verbose results in text format..."
+
+        print "\t./tlv_vs_obfuscate_output/mean.out..."
+        with open("tlv_vs_obfuscate_output/mean.out", "w+") as outFile:
+            pickle.dump(mean, outFile)
+
+        print "\t./tlv_vs_obfuscate_output/meanDiff.out..."
+        with open("tlv_vs_obfuscate_output/meanDiff.out", "w+") as outFile:
+            pickle.dump(meanDiff, outFile)
+
+        print "\t./tlv_vs_obfuscate_output/std.out..."
+        with open("tlv_vs_obfuscate_output/std.out", "w+") as outFile:
+            pickle.dump(std, outFile)
+
+
+def calculateMeanSTD():
+    print "Calculating means, mean differences, and standard deviations..."
+    mean = []
+    meanDiff = []
+    std = []
+
+    # Calculate means.
+    mean.append(stat.mean(tlv))
+    mean.append(stat.mean(hash16))
+    mean.append(stat.mean(hash32))
+    mean.append(stat.mean(hash48))
+    mean.append(stat.mean(hash64))
+    mean.append(stat.mean(hash128))
+    mean.append(stat.mean(hash160))
+
+    # Calculate means difference.
+    meanDiff.append(((mean[1] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[2] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[3] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[4] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[5] - mean[0]) / mean[0]) * 100)
+    meanDiff.append(((mean[6] - mean[0]) / mean[0]) * 100)
+
+    # Calculate STD.
+    std.append(stat.stdev(tlv))
+    std.append(stat.stdev(hash16))
+    std.append(stat.stdev(hash32))
+    std.append(stat.stdev(hash48))
+    std.append(stat.stdev(hash64))
+    std.append(stat.stdev(hash128))
+    std.append(stat.stdev(hash160))
+
+    return (mean, meanDiff, std)
 
 
 if __name__ == "__main__":
