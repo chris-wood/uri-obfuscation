@@ -52,6 +52,8 @@ def usage():
 
 
 def main(argv):
+    start_time = time.time()
+
     inputPath = ""
     outputType = "plot"
     plot = False
@@ -101,16 +103,19 @@ def main(argv):
     if plot == False:
         if os.path.isfile(inputPath):
             processFile(inputPath)
+            print("--- %s seconds ---" % (time.time() - start_time))
         else:
             for filePath in [os.path.join(inputPath, f) for f in
                              os.listdir(inputPath) if
                              os.path.isfile(os.path.join(inputPath, f))]:
                 processFile(filePath)
+            print("--- %s seconds ---" % (time.time() - start_time))
 
         plotResults(outputType, verbose)
+        print("--- %s seconds ---" % (time.time() - start_time))
     else:
         plotResultsFromText(inputPath, verbose)
-
+        print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def processFile(filePath):
@@ -361,21 +366,29 @@ def saveResults(verbose):
 
 
 def calculateMeanSTD():
-    print "Calculating means, mean differences, and standard deviations..."
     mean = []
     meanDiff = []
     std = []
 
     # Calculate means.
+    print "Calculating means..."
+    print "\tTLV mean..."
     mean.append(stat.mean(tlv))
+    print "\tHash 16-bit mean..."
     mean.append(stat.mean(hash16))
+    print "\tHash 32-bit mean..."
     mean.append(stat.mean(hash32))
+    print "\tHash 48-bit mean..."
     mean.append(stat.mean(hash48))
+    print "\tHash 64-bit mean..."
     mean.append(stat.mean(hash64))
+    print "\tHash 128-bit mean..."
     mean.append(stat.mean(hash128))
+    print "\tHash 160-bit mean..."
     mean.append(stat.mean(hash160))
 
     # Calculate means difference.
+    print "Calculating mean differences..."
     meanDiff.append(((mean[1] - mean[0]) / mean[0]) * 100)
     meanDiff.append(((mean[2] - mean[0]) / mean[0]) * 100)
     meanDiff.append(((mean[3] - mean[0]) / mean[0]) * 100)
@@ -384,18 +397,24 @@ def calculateMeanSTD():
     meanDiff.append(((mean[6] - mean[0]) / mean[0]) * 100)
 
     # Calculate STD.
+    print "Calculating standard deviations..."
+    print "\tTLV standard deviation..."
     std.append(stat.stdev(tlv))
+    print "\tHash 16-bit standard deviation..."
     std.append(stat.stdev(hash16))
+    print "\tHash 32-bit standard deviation..."
     std.append(stat.stdev(hash32))
+    print "\tHash 48-bit standard deviation..."
     std.append(stat.stdev(hash48))
+    print "\tHash 64-bit standard deviation..."
     std.append(stat.stdev(hash64))
+    print "\tHash 128-bit standard deviation..."
     std.append(stat.stdev(hash128))
+    print "\tHash 160-bit standard deviation..."
     std.append(stat.stdev(hash160))
 
     return (mean, meanDiff, std)
 
 
 if __name__ == "__main__":
-    start_time = time.time()
     main(sys.argv[1:])
-    print("--- %s seconds ---" % (time.time() - start_time))
