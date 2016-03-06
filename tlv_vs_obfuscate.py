@@ -320,6 +320,8 @@ def autoLabel(ax, rects, heightDiff, xShift):
 
 
 def saveResults(verbose):
+    global start_time
+
     if os.path.isdir("tlv_vs_obfuscate_output"):
         shutil.rmtree("tlv_vs_obfuscate_output", ignore_errors=True)
     os.makedirs("tlv_vs_obfuscate_output")
@@ -330,50 +332,57 @@ def saveResults(verbose):
         print "\t./tlv_vs_obfuscate_output/tlv.out..."
         with open("tlv_vs_obfuscate_output/tlv.out", "w+") as outFile:
             pickle.dump(tlv, outFile)
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
         print "\t./tlv_vs_obfuscate_output/hash16.out..."
         with open("tlv_vs_obfuscate_output/hash16.out", "w+") as outFile:
             pickle.dump(hash16, outFile)
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
         print "\t./tlv_vs_obfuscate_output/hash32.out..."
         with open("tlv_vs_obfuscate_output/hash32.out", "w+") as outFile:
             pickle.dump(hash32, outFile)
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
         print "\t./tlv_vs_obfuscate_output/hash48.out..."
         with open("tlv_vs_obfuscate_output/hash48.out", "w+") as outFile:
             pickle.dump(hash48, outFile)
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
         print "\t./tlv_vs_obfuscate_output/hash64.out..."
         with open("tlv_vs_obfuscate_output/hash64.out", "w+") as outFile:
             pickle.dump(hash64, outFile)
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
         print "\t./tlv_vs_obfuscate_output/hash128.out..."
         with open("tlv_vs_obfuscate_output/hash128.out", "w+") as outFile:
             pickle.dump(hash128, outFile)
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
         print "\t./tlv_vs_obfuscate_output/hash160.out..."
         with open("tlv_vs_obfuscate_output/hash160.out", "w+") as outFile:
             pickle.dump(hash160, outFile)
-    else:
-        mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
-        print "Saving non-verbose results in text format..."
+    print "Saving non-verbose results in text format..."
+    mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
 
-        print "\t./tlv_vs_obfuscate_output/mean.out..."
-        with open("tlv_vs_obfuscate_output/mean.out", "w+") as outFile:
-            pickle.dump(mean, outFile)
+    print "\t./tlv_vs_obfuscate_output/mean.out..."
+    with open("tlv_vs_obfuscate_output/mean.out", "w+") as outFile:
+        pickle.dump(mean, outFile)
 
-        print "\t./tlv_vs_obfuscate_output/meanDiff.out..."
-        with open("tlv_vs_obfuscate_output/meanDiff.out", "w+") as outFile:
-            pickle.dump(meanDiff, outFile)
+    print "\t./tlv_vs_obfuscate_output/meanDiff.out..."
+    with open("tlv_vs_obfuscate_output/meanDiff.out", "w+") as outFile:
+        pickle.dump(meanDiff, outFile)
 
-        print "\t./tlv_vs_obfuscate_output/min_yerr.out..."
-        with open("tlv_vs_obfuscate_output/min_yerr.out", "w+") as outFile:
-            pickle.dump(min_yerr, outFile)
+    print "\t./tlv_vs_obfuscate_output/min_yerr.out..."
+    with open("tlv_vs_obfuscate_output/min_yerr.out", "w+") as outFile:
+        pickle.dump(min_yerr, outFile)
 
-        print "\t./tlv_vs_obfuscate_output/max_yerr.out..."
-        with open("tlv_vs_obfuscate_output/max_yerr.out", "w+") as outFile:
-            pickle.dump(max_yerr, outFile)
+    print "\t./tlv_vs_obfuscate_output/max_yerr.out..."
+    with open("tlv_vs_obfuscate_output/max_yerr.out", "w+") as outFile:
+        pickle.dump(max_yerr, outFile)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def calculateMeanYerr():
