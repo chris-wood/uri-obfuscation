@@ -19,6 +19,7 @@ HASH64SIZE = 8
 HASH128SIZE = 16
 HASH160SIZE = 20
 
+start_time = 0
 tlv = []
 hash16 = []
 hash32 = []
@@ -52,6 +53,7 @@ def usage():
 
 
 def main(argv):
+    global start_time
     start_time = time.time()
 
     inputPath = ""
@@ -161,8 +163,8 @@ def plotResults(outputType, verbose):
     if outputType == "plot":
         if verbose:
             plotPDF()
-        mean, meanDiff, std = calculateMeanSTD()
-        plotMeanSTD(mean, meanDiff, std)
+        mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
+        plotMeanYerr(mean, meanDiff, min_yerr, max_yerr)
     elif outputType == "text":
         saveResults(verbose)
 
@@ -206,7 +208,7 @@ def plotResultsFromText(inputPath, verbose):
         hash160.extend(tmp)
 
         plotPDF()
-        mean, meanDiff, std = calculateMeanSTD()
+        mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
     else:
         print "\t" + os.path.join(inputPath, "mean.out") + "..."
         with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
@@ -216,11 +218,15 @@ def plotResultsFromText(inputPath, verbose):
         with open(os.path.join(inputPath, "meanDiff.out"), "r") as inFile:
             meanDiff = pickle.load(inFile)
 
-        print "\t" + os.path.join(inputPath, "std.out") + "..."
-        with open(os.path.join(inputPath, "std.out"), "r") as inFile:
-            std = pickle.load(inFile)
+        print "\t" + os.path.join(inputPath, "min_yerr.out") + "..."
+        with open(os.path.join(inputPath, "min_yerr.out"), "r") as inFile:
+            min_yerr = pickle.load(inFile)
 
-    plotMeanSTD(mean, meanDiff, std)
+        print "\t" + os.path.join(inputPath, "max_yerr.out") + "..."
+        with open(os.path.join(inputPath, "max_yerr.out"), "r") as inFile:
+            max_yerr = pickle.load(inFile)
+
+    plotMeanYerr(mean, meanDiff, min_yerr, max_yerr)
 
 
 def plotPDF():
@@ -248,7 +254,7 @@ def plotPDF():
     plt.cla()
 
 
-def plotMeanSTD(mean, meanDiff, std):
+def plotMeanYerr(mean, meanDiff, min_yerr, max_yerr):
     width = 0.35
     xShift = -0.20
 
@@ -257,7 +263,8 @@ def plotMeanSTD(mean, meanDiff, std):
 
     fig, ax = plt.subplots()
     ind = np.arange(len(mean))
-    rects = ax.bar(ind + width, mean, width, color='#0072bd', yerr=std)
+    rects = ax.bar(ind + width, mean, width, color='#0072bd',
+                   yerr=[min_yerr, max_yerr])
 
     # Add some text for labels, title and axes ticks.
     ax.grid(True)
@@ -348,7 +355,7 @@ def saveResults(verbose):
         with open("tlv_vs_obfuscate_output/hash160.out", "w+") as outFile:
             pickle.dump(hash160, outFile)
     else:
-        mean, meanDiff, std = calculateMeanSTD()
+        mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
 
         print "Saving non-verbose results in text format..."
 
@@ -360,32 +367,45 @@ def saveResults(verbose):
         with open("tlv_vs_obfuscate_output/meanDiff.out", "w+") as outFile:
             pickle.dump(meanDiff, outFile)
 
-        print "\t./tlv_vs_obfuscate_output/std.out..."
-        with open("tlv_vs_obfuscate_output/std.out", "w+") as outFile:
-            pickle.dump(std, outFile)
+        print "\t./tlv_vs_obfuscate_output/min_yerr.out..."
+        with open("tlv_vs_obfuscate_output/min_yerr.out", "w+") as outFile:
+            pickle.dump(min_yerr, outFile)
+
+        print "\t./tlv_vs_obfuscate_output/max_yerr.out..."
+        with open("tlv_vs_obfuscate_output/max_yerr.out", "w+") as outFile:
+            pickle.dump(max_yerr, outFile)
 
 
-def calculateMeanSTD():
+def calculateMeanYerr():
+    global start_time
     mean = []
     meanDiff = []
-    std = []
+    min_yerr = []
+    max_yerr = []
 
     # Calculate means.
     print "Calculating means..."
     print "\tTLV mean..."
     mean.append(stat.mean(tlv))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 16-bit mean..."
     mean.append(stat.mean(hash16))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 32-bit mean..."
     mean.append(stat.mean(hash32))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 48-bit mean..."
     mean.append(stat.mean(hash48))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 64-bit mean..."
     mean.append(stat.mean(hash64))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 128-bit mean..."
     mean.append(stat.mean(hash128))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 160-bit mean..."
     mean.append(stat.mean(hash160))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
 
     # Calculate means difference.
     print "Calculating mean differences..."
@@ -396,24 +416,24 @@ def calculateMeanSTD():
     meanDiff.append(((mean[5] - mean[0]) / mean[0]) * 100)
     meanDiff.append(((mean[6] - mean[0]) / mean[0]) * 100)
 
-    # Calculate STD.
-    print "Calculating standard deviations..."
-    print "\tTLV standard deviation..."
-    std.append(stat.stdev(tlv))
-    print "\tHash 16-bit standard deviation..."
-    std.append(stat.stdev(hash16))
-    print "\tHash 32-bit standard deviation..."
-    std.append(stat.stdev(hash32))
-    print "\tHash 48-bit standard deviation..."
-    std.append(stat.stdev(hash48))
-    print "\tHash 64-bit standard deviation..."
-    std.append(stat.stdev(hash64))
-    print "\tHash 128-bit standard deviation..."
-    std.append(stat.stdev(hash128))
-    print "\tHash 160-bit standard deviation..."
-    std.append(stat.stdev(hash160))
+    # Calculate Yerr.
+    print "Calculating y-axis error..."
+    min_yerr.append(min(tlv))
+    min_yerr.append(min(hash16))
+    min_yerr.append(min(hash32))
+    min_yerr.append(min(hash48))
+    min_yerr.append(min(hash64))
+    min_yerr.append(min(hash128))
+    min_yerr.append(min(hash160))
+    max_yerr.append(max(tlv))
+    max_yerr.append(max(hash16))
+    max_yerr.append(max(hash32))
+    max_yerr.append(max(hash48))
+    max_yerr.append(max(hash64))
+    max_yerr.append(max(hash128))
+    max_yerr.append(max(hash160))
 
-    return (mean, meanDiff, std)
+    return (mean, meanDiff, min_yerr, max_yerr)
 
 
 if __name__ == "__main__":
