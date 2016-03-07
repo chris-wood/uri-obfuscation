@@ -132,8 +132,8 @@ def processFile(filePath):
     print "Processing '" + filePath + "'..."
     with open(filePath, "r") as inFile:
         for line in inFile:
-            name = line.split("/").strip("http://").strip("https://")
-                       .strip("ftp://")
+            name = line.strip("http://").strip("https://").strip(
+                "ftp://").split("/")
 
             # TLV encoding size.
             tlvEncodingSize = 0
