@@ -111,7 +111,7 @@ def main(argv):
         usage()
         sys.exit(2)
 
-    if outputType not in ("stdev", "yerr", "both"):
+    if errorType not in ("stdev", "yerr", "both"):
         print "Error type must be either 'stdev', 'yerr', or 'both'."
         usage()
         sys.exit(2)
