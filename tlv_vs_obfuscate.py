@@ -496,23 +496,31 @@ def calculateMeanErr(errorType):
 
 
 def calculateSTD():
+    global start_time
     std = []
 
     print "Calculating standard deviations..."
     print "\tTLV standard deviation..."
     std.append(stat.stdev(tlv))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 16-bit standard deviation..."
     std.append(stat.stdev(hash16))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 32-bit standard deviation..."
     std.append(stat.stdev(hash32))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 48-bit standard deviation..."
     std.append(stat.stdev(hash48))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 64-bit standard deviation..."
     std.append(stat.stdev(hash64))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 128-bit standard deviation..."
     std.append(stat.stdev(hash128))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
     print "\tHash 160-bit standard deviation..."
     std.append(stat.stdev(hash160))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return std
 
