@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 
+OUTLIERS_LIMIT = 80
 HASH16SIZE = 2
 HASH32SIZE = 4
 HASH48SIZE = 6
@@ -139,6 +140,11 @@ def processFile(filePath):
         for line in inFile:
             name = line.strip("http://").strip("https://").strip(
                 "ftp://").split("/")
+
+            # Skip all URIs with more than 80 name components, this gets rid of
+            # outliers.
+            if len(name) > OUTLIERS_LIMIT:
+                continue
 
             # TLV encoding size.
             tlvEncodingSize = 0
