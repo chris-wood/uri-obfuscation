@@ -31,6 +31,7 @@ hash160 = []
 
 def usage():
     print "python tlv_vs_obfuscate.py -i <inputPath> -o <outputType> -p -v"
+    print "                           -o <errorType>"
     print ""
     print "\t-i <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
@@ -50,6 +51,9 @@ def usage():
     print "\t\tdistribution data. If this option is not provided (default),"
     print "\t\ttlv_cs_obfuscate will only saves the mean and standard deviation"
     print "\t\tof the results."
+    print "\t-e"
+    print "\t\tis the error type, either standard deviation 'stdev', minumum and"
+    print "\t\tmaximum value 'yerr', or 'both'."
 
 
 def main(argv):
@@ -60,8 +64,10 @@ def main(argv):
     outputType = "plot"
     plot = False
     verbose = False
+    errorType = "both"
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pv", ["ipath=", "otype="])
+        opts, args = getopt.getopt(argv,"hi:o:pve:", ["ipath=", "otype=",
+                                                      "etype="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -78,6 +84,8 @@ def main(argv):
             plot = True
         elif opt == "-v":
             verbose = True
+        elif opt in ("-e", "--etype"):
+            errorType = arg
         else:
             usage()
             sys.exit(2)
@@ -113,10 +121,10 @@ def main(argv):
                 processFile(filePath)
             print("--- %s seconds ---" % (time.time() - start_time))
 
-        plotResults(outputType, verbose)
+        plotResults(outputType, verbose, errorType)
         print("--- %s seconds ---" % (time.time() - start_time))
     else:
-        plotResultsFromText(inputPath, verbose)
+        plotResultsFromText(inputPath, verbose, errorType)
         print("--- %s seconds ---" % (time.time() - start_time))
 
 
@@ -124,7 +132,8 @@ def processFile(filePath):
     print "Processing '" + filePath + "'..."
     with open(filePath, "r") as inFile:
         for line in inFile:
-            name = line.split("/")
+            name = line.split("/").strip("http://").strip("https://")
+                       .strip("ftp://")
 
             # TLV encoding size.
             tlvEncodingSize = 0
@@ -159,17 +168,17 @@ def processFile(filePath):
             hash160.append(hash160EncodingSize)
 
 
-def plotResults(outputType, verbose):
+def plotResults(outputType, verbose, errorType):
     if outputType == "plot":
         if verbose:
             plotPDF()
-        mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
-        plotMeanYerr(mean, meanDiff, min_yerr, max_yerr)
+        mean, meanDiff, std, min_yerr, max_yerr = calculateMeanErr(errorType)
+        plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
     elif outputType == "text":
-        saveResults(verbose)
+        saveResults(verbose, errorType)
 
 
-def plotResultsFromText(inputPath, verbose):
+def plotResultsFromText(inputPath, verbose, errorType):
     if verbose:
         print "Reading verbose results in text format"
         print "\t" + os.path.join(inputPath, "tlv.out") + "..."
@@ -208,7 +217,7 @@ def plotResultsFromText(inputPath, verbose):
         hash160.extend(tmp)
 
         plotPDF()
-        mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
+        mean, meanDiff, std, min_yerr, max_yerr = calculateMeanErr(errorType)
     else:
         print "\t" + os.path.join(inputPath, "mean.out") + "..."
         with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
@@ -218,15 +227,27 @@ def plotResultsFromText(inputPath, verbose):
         with open(os.path.join(inputPath, "meanDiff.out"), "r") as inFile:
             meanDiff = pickle.load(inFile)
 
-        print "\t" + os.path.join(inputPath, "min_yerr.out") + "..."
-        with open(os.path.join(inputPath, "min_yerr.out"), "r") as inFile:
-            min_yerr = pickle.load(inFile)
+        std = []
+        if errorType in ("stdev", "both"):
+            print "\t" + os.path.join(inputPath, "std.out") + "..."
+            with open(os.path.join(inputPath, "std.out"), "r") as inFile:
+                tmp = pickle.load(inFile)
+                std.extend(tmp)
 
-        print "\t" + os.path.join(inputPath, "max_yerr.out") + "..."
-        with open(os.path.join(inputPath, "max_yerr.out"), "r") as inFile:
-            max_yerr = pickle.load(inFile)
+        min_yerr = []
+        max_yerr = []
+        if errorType in ("yerr", "both"):
+            print "\t" + os.path.join(inputPath, "min_yerr.out") + "..."
+            with open(os.path.join(inputPath, "min_yerr.out"), "r") as inFile:
+                tmp = pickle.load(inFile)
+                min_yerr.extend(tmp)
+                
+            print "\t" + os.path.join(inputPath, "max_yerr.out") + "..."
+            with open(os.path.join(inputPath, "max_yerr.out"), "r") as inFile:
+                tmp = pickle.load(inFile)
+                max_yerr.extend(tmp)
 
-    plotMeanYerr(mean, meanDiff, min_yerr, max_yerr)
+    plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
 
 
 def plotPDF():
@@ -254,31 +275,51 @@ def plotPDF():
     plt.cla()
 
 
-def plotMeanYerr(mean, meanDiff, min_yerr, max_yerr):
+def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
     width = 0.35
     xShift = -0.20
 
     # Plot name lengths.
     print "Plotting name lengths..."
 
-    fig, ax = plt.subplots()
-    ind = np.arange(len(mean))
-    rects = ax.bar(ind + width, mean, width, color='#0072bd',
-                   yerr=[min_yerr, max_yerr])
+    if errorType in ("stdev", "both"):
+        fig, ax = plt.subplots()
+        ind = np.arange(len(mean))
+        rects = ax.bar(ind + width, mean, width, color='#0072bd', yerr=std)
 
-    # Add some text for labels, title and axes ticks.
-    ax.grid(True)
-    ax.set_ylabel('Name length (bytes)')
-    ax.set_xticks(ind + (width * 1.5))
-    ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
-                        '128-bit', '160-bit'))
-    autoLabel(ax, rects, 3, xShift)
+        # Add some text for labels, title and axes ticks.
+        ax.grid(True)
+        ax.set_ylabel('Name length (bytes)')
+        ax.set_xticks(ind + (width * 1.5))
+        ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
+                            '128-bit', '160-bit'))
+        autoLabel(ax, rects, 3, xShift)
 
-    # Save to file.
-    pp = PdfPages('tlv_vs_obfuscate_NameLengths.pdf')
-    plt.savefig(pp, format='pdf')
-    pp.close()
-    plt.cla()
+        # Save to file.
+        pp = PdfPages('tlv_vs_obfuscate_NameLengths_stdev.pdf')
+        plt.savefig(pp, format='pdf')
+        pp.close()
+        plt.cla()
+
+    if errorType in ("yerr", "both"):
+        fig, ax = plt.subplots()
+        ind = np.arange(len(mean))
+        rects = ax.bar(ind + width, mean, width, color='#0072bd',
+                       yerr=[min_yerr, max_yerr])
+
+        # Add some text for labels, title and axes ticks.
+        ax.grid(True)
+        ax.set_ylabel('Name length (bytes)')
+        ax.set_xticks(ind + (width * 1.5))
+        ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
+                            '128-bit', '160-bit'))
+        autoLabel(ax, rects, 3, xShift)
+
+        # Save to file.
+        pp = PdfPages('tlv_vs_obfuscate_NameLengths_yerr.pdf')
+        plt.savefig(pp, format='pdf')
+        pp.close()
+        plt.cla()
 
     # Plot name length difference.
     print "Plotting name length differences..."
@@ -319,7 +360,7 @@ def autoLabel(ax, rects, heightDiff, xShift):
                 ha='center', va='bottom')
 
 
-def saveResults(verbose):
+def saveResults(verbose, errorType):
     global start_time
 
     if os.path.isdir("tlv_vs_obfuscate_output"):
@@ -364,9 +405,9 @@ def saveResults(verbose):
             pickle.dump(hash160, outFile)
         print("\t--- %s seconds ---" % (time.time() - start_time))
 
-    print "Saving non-verbose results in text format..."
-    mean, meanDiff, min_yerr, max_yerr = calculateMeanYerr()
+    mean, meanDiff, std, min_yerr, max_yerr = calculateMeanErr(errorType)
 
+    print "Saving non-verbose results in text format..."
     print "\t./tlv_vs_obfuscate_output/mean.out..."
     with open("tlv_vs_obfuscate_output/mean.out", "w+") as outFile:
         pickle.dump(mean, outFile)
@@ -375,20 +416,28 @@ def saveResults(verbose):
     with open("tlv_vs_obfuscate_output/meanDiff.out", "w+") as outFile:
         pickle.dump(meanDiff, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/min_yerr.out..."
-    with open("tlv_vs_obfuscate_output/min_yerr.out", "w+") as outFile:
-        pickle.dump(min_yerr, outFile)
+    if errorType in ("stdev", "both"):
+        print "\t./tlv_vs_obfuscate_output/std.out..."
+        with open("tlv_vs_obfuscate_output/std.out", "w+") as outFile:
+            pickle.dump(std, outFile)
 
-    print "\t./tlv_vs_obfuscate_output/max_yerr.out..."
-    with open("tlv_vs_obfuscate_output/max_yerr.out", "w+") as outFile:
-        pickle.dump(max_yerr, outFile)
+    if errorType in ("yerr", "both"):
+        print "\t./tlv_vs_obfuscate_output/min_yerr.out..."
+        with open("tlv_vs_obfuscate_output/min_yerr.out", "w+") as outFile:
+            pickle.dump(min_yerr, outFile)
+
+        print "\t./tlv_vs_obfuscate_output/max_yerr.out..."
+        with open("tlv_vs_obfuscate_output/max_yerr.out", "w+") as outFile:
+            pickle.dump(max_yerr, outFile)
+
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
-def calculateMeanYerr():
+def calculateMeanErr(errorType):
     global start_time
     mean = []
     meanDiff = []
+    std = []
     min_yerr = []
     max_yerr = []
 
@@ -425,7 +474,42 @@ def calculateMeanYerr():
     meanDiff.append(((mean[5] - mean[0]) / mean[0]) * 100)
     meanDiff.append(((mean[6] - mean[0]) / mean[0]) * 100)
 
-    # Calculate Yerr.
+    if errorType in ("stdev", "both"):
+        std.extend(calculateSTD())
+    if errorType in ("yerr", "both"):
+        tmp1, tmp2 = calculateYerr()
+        min_yerr.extend(tmp1)
+        max_yerr.extend(tmp2)
+
+    return (mean, meanDiff, std, min_yerr, max_yerr)
+
+
+def calculateSTD():
+    std = []
+
+    print "Calculating standard deviations..."
+    print "\tTLV standard deviation..."
+    std.append(stat.stdev(tlv))
+    print "\tHash 16-bit standard deviation..."
+    std.append(stat.stdev(hash16))
+    print "\tHash 32-bit standard deviation..."
+    std.append(stat.stdev(hash32))
+    print "\tHash 48-bit standard deviation..."
+    std.append(stat.stdev(hash48))
+    print "\tHash 64-bit standard deviation..."
+    std.append(stat.stdev(hash64))
+    print "\tHash 128-bit standard deviation..."
+    std.append(stat.stdev(hash128))
+    print "\tHash 160-bit standard deviation..."
+    std.append(stat.stdev(hash160))
+
+    return std
+
+
+def calculateYerr():
+    min_yerr = []
+    max_yerr = []
+
     print "Calculating y-axis error..."
     min_yerr.append(min(tlv))
     min_yerr.append(min(hash16))
@@ -442,7 +526,7 @@ def calculateMeanYerr():
     max_yerr.append(max(hash128))
     max_yerr.append(max(hash160))
 
-    return (mean, meanDiff, min_yerr, max_yerr)
+    return (min_yerr, max_yerr)
 
 
 if __name__ == "__main__":
