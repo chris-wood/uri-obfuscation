@@ -110,6 +110,11 @@ def main(argv):
         usage()
         sys.exit(2)
 
+    if outputType not in ("stdev", "yerr", "both"):
+        print "Error type must be either 'stdev', 'yerr', or 'both'."
+        usage()
+        sys.exit(2)
+
     if plot == False:
         if os.path.isfile(inputPath):
             processFile(inputPath)
@@ -241,7 +246,7 @@ def plotResultsFromText(inputPath, verbose, errorType):
             with open(os.path.join(inputPath, "min_yerr.out"), "r") as inFile:
                 tmp = pickle.load(inFile)
                 min_yerr.extend(tmp)
-                
+
             print "\t" + os.path.join(inputPath, "max_yerr.out") + "..."
             with open(os.path.join(inputPath, "max_yerr.out"), "r") as inFile:
                 tmp = pickle.load(inFile)
