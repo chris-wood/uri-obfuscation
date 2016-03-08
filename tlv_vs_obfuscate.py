@@ -12,7 +12,9 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 
-OUTLIERS_LIMIT = 80
+# LENGTH_LIMIT is from here: http://www.boutell.com/newfaq/misc/urllength.html.
+LENGTH_LIMIT = 2000
+COMPONENT_LIMIT = 80
 HASH16SIZE = 2
 HASH32SIZE = 4
 HASH48SIZE = 6
@@ -138,12 +140,16 @@ def processFile(filePath):
     print "Processing '" + filePath + "'..."
     with open(filePath, "r") as inFile:
         for line in inFile:
+            # Skip all long URIs, this gets rid of outliers.
+            if len(line) > LENGTH_LIMIT:
+                continue
+
             name = line.strip("http://").strip("https://").strip(
                 "ftp://").split("/")
 
-            # Skip all URIs with more than 80 name components, this gets rid of
+            # Skip all URIs with a lot of name components, this gets rid of
             # outliers.
-            if len(name) > OUTLIERS_LIMIT:
+            if len(name) > COMPONENT_LIMIT:
                 continue
 
             # TLV encoding size.
