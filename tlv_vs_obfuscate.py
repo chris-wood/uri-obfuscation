@@ -236,6 +236,7 @@ def plotResultsFromText(inputPath, verbose, errorType):
         plotPDF()
         mean, meanDiff, std, min_yerr, max_yerr = calculateMeanErr(errorType)
     else:
+        print "Reading non-verbose results in text format"
         print "\t" + os.path.join(inputPath, "mean.out") + "..."
         with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
             mean = pickle.load(inFile)
