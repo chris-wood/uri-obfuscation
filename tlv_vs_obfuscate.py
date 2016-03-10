@@ -206,36 +206,43 @@ def plotResultsFromFile(inputPath, verbose, errorType):
         with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "TLV format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash16.out") + "..."
         with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "16-bit format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash32.out") + "..."
         with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "32-bit format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash48.out") + "..."
         with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "48-bit format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash64.out") + "..."
         with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "64-bit format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash128.out") + "..."
         with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "128-bit format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash160.out") + "..."
         with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "160-bit format")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         finalizePlotPDF()
 
