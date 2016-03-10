@@ -1,26 +1,25 @@
-import multiprocessing as mp
+from concurrent.futures import *
 import itertools
 import time
 import csv
 
-def count(*samples_list):
-    print samples_list
-    time.sleep(1)
-    pass
+def single_count(l):
+    return (l, 1)
 
-def dispatch(samples_list, N = 8):
-    pool = mp.Pool()
+def group_counts(result):
+    groups = {}
+    total = 0
+    for item, count in result:
+        groups[item] = 1 if item not in groups else groups[item] + 1
+        total += count
+    return groups, total
 
-    pids = pool.map(func=count, iterable=samples_list, chunksize=10)
+def reduce(l):
+    return (l[0], sum(pair[1] for pair in l[1]))
 
-    jobs = []
-    for i, s in enumerate(slice):
-        # print s 
-        j = mp.Process(target=count, args=s)
-        jobs.append(j)
-    for j in jobs:
-        j.start()
-
-    pass
-
-dispatch([1] * 100)
+with ThreadPoolExecutor(max_workers=2) as executor:
+    result = executor.map(single_count, XXX)
+    group, count = group_counts(result)
+    result = executor.map(lambda l : float(group[l]) / count, group)
+    for v in result:
+        print v,
