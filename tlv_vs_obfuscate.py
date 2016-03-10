@@ -132,7 +132,7 @@ def main(argv):
         plotResults(outputType, verbose, errorType)
         print("--- %s seconds ---" % (time.time() - start_time))
     else:
-        plotResultsFromText(inputPath, verbose, errorType)
+        plotResultsFromFile(inputPath, verbose, errorType)
         print("--- %s seconds ---" % (time.time() - start_time))
 
 
@@ -195,75 +195,78 @@ def plotResults(outputType, verbose, errorType):
         saveResults(verbose, errorType)
 
 
-def plotResultsFromText(inputPath, verbose, errorType):
+def plotResultsFromFile(inputPath, verbose, errorType):
+    global start_time
     if verbose:
-        print "Reading verbose results in text format"
+        print "Reading verbose results stored in text format"
+
+        plt.hold(True)
+
         print "\t" + os.path.join(inputPath, "tlv.out") + "..."
         with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        tlv.extend(tmp)
+        plot(tmp, "TLV format")
 
         print "\t" + os.path.join(inputPath, "hash16.out") + "..."
         with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        hash16.extend(tmp)
+        plot(tmp, "16-bit format")
 
         print "\t" + os.path.join(inputPath, "hash32.out") + "..."
         with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        hash32.extend(tmp)
+        plot(tmp, "32-bit format")
 
         print "\t" + os.path.join(inputPath, "hash48.out") + "..."
         with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        hash48.extend(tmp)
+        plot(tmp, "48-bit format")
 
         print "\t" + os.path.join(inputPath, "hash64.out") + "..."
         with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        hash64.extend(tmp)
+        plot(tmp, "64-bit format")
 
         print "\t" + os.path.join(inputPath, "hash128.out") + "..."
         with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        hash128.extend(tmp)
+        plot(tmp, "128-bit format")
 
         print "\t" + os.path.join(inputPath, "hash160.out") + "..."
         with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
             tmp = pickle.load(inFile)
-        hash160.extend(tmp)
+        plot(tmp, "160-bit format")
 
-        plotPDF()
-        mean, meanDiff, std, min_yerr, max_yerr = calculateMeanErr(errorType)
-    else:
-        print "Reading non-verbose results in text format"
-        print "\t" + os.path.join(inputPath, "mean.out") + "..."
-        with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
-            mean = pickle.load(inFile)
+        finalizePlotPDF()
 
-        print "\t" + os.path.join(inputPath, "meanDiff.out") + "..."
-        with open(os.path.join(inputPath, "meanDiff.out"), "r") as inFile:
-            meanDiff = pickle.load(inFile)
+    print "Reading non-verbose results stored in text format"
+    print "\t" + os.path.join(inputPath, "mean.out") + "..."
+    with open(os.path.join(inputPath, "mean.out"), "r") as inFile:
+        mean = pickle.load(inFile)
 
-        std = []
-        if errorType in ("stdev", "both"):
-            print "\t" + os.path.join(inputPath, "std.out") + "..."
-            with open(os.path.join(inputPath, "std.out"), "r") as inFile:
-                tmp = pickle.load(inFile)
-                std.extend(tmp)
+    print "\t" + os.path.join(inputPath, "meanDiff.out") + "..."
+    with open(os.path.join(inputPath, "meanDiff.out"), "r") as inFile:
+        meanDiff = pickle.load(inFile)
 
-        min_yerr = []
-        max_yerr = []
-        if errorType in ("yerr", "both"):
-            print "\t" + os.path.join(inputPath, "min_yerr.out") + "..."
-            with open(os.path.join(inputPath, "min_yerr.out"), "r") as inFile:
-                tmp = pickle.load(inFile)
-                min_yerr.extend(tmp)
+    std = []
+    if errorType in ("stdev", "both"):
+        print "\t" + os.path.join(inputPath, "std.out") + "..."
+        with open(os.path.join(inputPath, "std.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+            std.extend(tmp)
 
-            print "\t" + os.path.join(inputPath, "max_yerr.out") + "..."
-            with open(os.path.join(inputPath, "max_yerr.out"), "r") as inFile:
-                tmp = pickle.load(inFile)
-                max_yerr.extend(tmp)
+    min_yerr = []
+    max_yerr = []
+    if errorType in ("yerr", "both"):
+        print "\t" + os.path.join(inputPath, "min_yerr.out") + "..."
+        with open(os.path.join(inputPath, "min_yerr.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+            min_yerr.extend(tmp)
+
+        print "\t" + os.path.join(inputPath, "max_yerr.out") + "..."
+        with open(os.path.join(inputPath, "max_yerr.out"), "r") as inFile:
+            tmp = pickle.load(inFile)
+            max_yerr.extend(tmp)
 
     plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
 
@@ -280,6 +283,10 @@ def plotPDF():
     plot(hash128, "128-bit format")
     plot(hash160, "160-bit format")
 
+    finalizePlotPDF()
+
+
+def finalizePlotPDF():
     # Set grid, axis labels, and legend.
     plt.grid(True)
     plt.xlabel("Name length (bytes)")
@@ -363,10 +370,15 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
 
 def plot(sizes, legendText):
     n = (len(sizes) / 10) # number of bins
-    p, x = np.histogram(sizes, bins=n)
-    x = x[:-1] + (x[1] - x[0])/2   # convert bin edges to centers
-    f = UnivariateSpline(x, p, s=n)
-    plt.plot(x, f(x), label=legendText)
+    hist, edges = np.histogram(sizes, bins=n)
+    edges = edges[:-1] + (edges[1] - edges[0])/2   # convert bin edges to centers
+    f = UnivariateSpline(edges, hist, s=n)
+    y = f(edges)
+    s = sum(y)
+    ny = [(float(x) / s) for x in y]
+    plt.plot(edges, ny, label=legendText)
+    lims = plt.ylim()
+    plt.ylim(0, lims[1])
 
 
 def autoLabel(ax, rects, heightDiff, xShift):
