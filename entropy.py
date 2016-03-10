@@ -116,8 +116,8 @@ def compute_distribution(pairs, cmin, cmax):
         print cmin, cmax, "Can't compute the PMF of nothing!"
         return
 
-    logging.debug("Starting run for cmin=%d cmax=%d" % (cmin, cmax))
-    logging.debug("Pairs = %s" % (str(pairs)))
+    # logging.debug("Starting run for cmin=%d cmax=%d" % (cmin, cmax))
+    # logging.debug("Pairs = %s" % (str(pairs)))
 
     # jpmfs holds the joint PMFs from cmin:cmin+1, cmin:cmin+2, ..., cmin:cmax
     # Each joint PMF is a map where keys are tuples and output is a probability (based on frequency of occurrence)
@@ -136,7 +136,7 @@ def compute_distribution(pairs, cmin, cmax):
     print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, Hj, Hc))
 
 def main(args):
-    logging.basicConfig(filename=args[1] + ".log", level=logging.DEBUG, format='%(message)s')
+    # logging.basicConfig(filename=args[1] + ".log", level=logging.DEBUG, format='%(message)s')
 
     with open(args[1], "r") as f:
         matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
