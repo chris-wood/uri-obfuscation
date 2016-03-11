@@ -7,6 +7,16 @@ import numpy as np
 
 NUM_CORES = 8
 
+class CachedThreadPoolExecutor(ThreadPoolExecutor):
+    def __init__(self, N):
+        super(CachedThreadPoolExecutor, self).__init__(max_workers=N)
+
+    def submit(self, fn, *args, **extra):
+        if self._work_queue.qsize() > 0:
+            self._max_workers +=1
+
+        return super(CachedThreadPoolExecutor, self).submit(fn, *args, **extra)
+
 def array_to_key(a, n):
     symbols = []
     for i in range(n):
@@ -16,13 +26,28 @@ def array_to_key(a, n):
 def single_count(l):
     return (l, 1)
 
-def group_counts(result):
-    groups = {}
-    total = 0
-    for item, count in result:
-        groups[item] = 1 if item not in groups else groups[item] + 1
-        total += count
-    return groups, total
+def group_counts(result, pool):
+    total = len(result)
+    if total > 10:
+        futureA = pool.submit(lambda l : group_counts(l, pool), result[0:total/2])
+        futureB = pool.submit(lambda l : group_counts(l, pool), result[total/2:])
+
+        groupA, countA = futureA.result()
+        groupB, countB = futureB.result()
+
+        for group in groupB:
+            if group in groupA:
+                groupA[group] = groupA[group] + groupB[group]
+            else:
+                groupA[group] = groupB[group]
+        return groupA, countA + countB
+    else:
+        groups = {}
+        total = 0
+        for item, count in result:
+            groups[item] = 1 if item not in groups else groups[item] + 1
+            total += count
+        return groups, total
 
 def reduce(l):
     return (l[0], sum(pair[1] for pair in l[1]))
@@ -31,7 +56,8 @@ def entropy_product(p):
     return p * np.log2(p) if p > 0 else 0
 
 def compute_entropy(rows, cmax):
-    with ThreadPoolExecutor(max_workers = NUM_CORES) as executor:
+    # with ProcessPoolExecutor() as executor:
+    with CachedThreadPoolExecutor(NUM_CORES) as executor:
         print >> sys.stderr, "Create keys..."
         keys = list(executor.map(lambda r : array_to_key(r, cmax), rows))
         print >> sys.stderr, "Done."
@@ -42,7 +68,8 @@ def compute_entropy(rows, cmax):
 
         # TODO: this is a bottleneck.
         print >> sys.stderr, "Group counts..."
-        group, count = group_counts(result)
+        future = executor.submit(lambda l : group_counts(l, executor), result)
+        group, count = future.result()
         print >> sys.stderr, "Done"
 
         print >> sys.stderr, "Compute JPMF..."
@@ -75,8 +102,8 @@ def main(args):
             entropy = compute_entropy(rows, cmax)
             print entropy
 
-            with open(sys.argv[2], "w") as fout:
-                writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            with open(sys.argv[3], "a") as fout:
+                writer = csv.writer(fout, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow([cmax, entropy])
 
 if __name__ == "__main__":
