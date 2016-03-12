@@ -34,7 +34,8 @@ hash160 = []
 
 def usage():
     print "python tlv_vs_obfuscate.py -i <inputPath> -o <outputType> -p -v"
-    print "                           -o <errorType>"
+    print "                           -o <errorType> -l <lengthLimit>"
+    print "                           -c <componentsLimit>"
     print ""
     print "\t-i <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
@@ -57,9 +58,15 @@ def usage():
     print "\t-e"
     print "\t\tis the error type, either standard deviation 'stdev', minumum and"
     print "\t\tmaximum value 'yerr', or 'both'."
+    print "\t-l"
+    print "\t\tis the length limit of the URI."
+    print "\t-c"
+    print "\t\tis the maximum number of components in a URI."
 
 
 def main(argv):
+    global LENGTH_LIMIT
+    global COMPONENT_LIMIT
     global start_time
     start_time = time.time()
 
@@ -69,8 +76,9 @@ def main(argv):
     verbose = False
     errorType = "both"
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pve:", ["ipath=", "otype=",
-                                                      "etype="])
+        opts, args = getopt.getopt(argv,"hi:o:pve:l:c:", ["ipath=", "otype=",
+                                                          "etype=", "llimit=",
+                                                          "climit"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -89,6 +97,10 @@ def main(argv):
             verbose = True
         elif opt in ("-e", "--etype"):
             errorType = arg
+        elif opt in ("-l", "--llimit"):
+            LENGTH_LIMIT = int(arg)
+        elif opt in ("-c", "--climit"):
+            COMPONENT_LIMIT = int(arg)
         else:
             usage()
             sys.exit(2)
