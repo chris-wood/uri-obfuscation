@@ -7,14 +7,14 @@ import numpy as np
 
 NUM_CORES = 8
 
+# http://stackoverflow.com/questions/17038288/nested-parallelism-in-python
 class CachedThreadPoolExecutor(ThreadPoolExecutor):
     def __init__(self, N):
         super(CachedThreadPoolExecutor, self).__init__(max_workers=N)
 
     def submit(self, fn, *args, **extra):
         if self._work_queue.qsize() > 0:
-            self._max_workers +=1
-
+            self._max_workers += 1
         return super(CachedThreadPoolExecutor, self).submit(fn, *args, **extra)
 
 def array_to_key(a, n):
@@ -28,7 +28,7 @@ def single_count(l):
 
 def group_counts(result, pool):
     total = len(result)
-    if total > 10:
+    if total > 100000:
         futureA = pool.submit(lambda l : group_counts(l, pool), result[0:total/2])
         futureB = pool.submit(lambda l : group_counts(l, pool), result[total/2:])
 
@@ -83,7 +83,8 @@ def compute_entropy(rows, cmax):
         return entropy
 
 # args[1] = input filename
-# args[2] = output filename
+# args[2] = max number of columns
+# args[3] = output filename
 def main(args):
     with open(args[1], "r") as f:
         matrix = map(lambda line: line.strip().split("/"), f.readlines())
