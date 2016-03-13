@@ -1,0 +1,9 @@
+# CRC-16
+a = crc16.crc16xmodem('123456789')
+struct.pack_into("=I", data, 0, a)
+h = binascii.hexlify(data)
+"".join(reversed([h[i:i+2] for i in range(0, len(h), 2)]))
+
+# CRC-32
+binascii.crc32("125") & 0xFFFFFFFF
+
