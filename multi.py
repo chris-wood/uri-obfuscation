@@ -27,8 +27,8 @@ def single_count(l):
     return (l, 1)
 
 def group_counts(result, pool):
-    total = len(result)
-    if total > 100000:
+    #total = len(result)
+    if False:
         futureA = pool.submit(lambda l : group_counts(l, pool), result[0:total/2])
         futureB = pool.submit(lambda l : group_counts(l, pool), result[total/2:])
 
@@ -44,9 +44,9 @@ def group_counts(result, pool):
     else:
         groups = {}
         total = 0
-        for item, count in result:
+        for item in result:
             groups[item] = 1 if item not in groups else groups[item] + 1
-            total += count
+            total += 1
         return groups, total
 
 def reduce(l):
@@ -57,19 +57,19 @@ def entropy_product(p):
 
 def compute_entropy(rows, cmax):
     # with ProcessPoolExecutor() as executor:
-    with CachedThreadPoolExecutor(NUM_CORES) as executor:
+    with ThreadPoolExecutor(NUM_CORES) as executor:
         print >> sys.stderr, "Create keys..."
         keys = list(executor.map(lambda r : array_to_key(r, cmax), rows))
         print >> sys.stderr, "Done."
 
         print >> sys.stderr, "Single count..."
-        result = list(executor.map(single_count, keys))
+        #result = list(executor.map(single_count, rows))
         print >> sys.stderr, "Done."
 
         # TODO: this is a bottleneck.
         print >> sys.stderr, "Group counts..."
-        future = executor.submit(lambda l : group_counts(l, executor), result)
-        group, count = future.result()
+        group, count = group_counts(keys, None)  #executor.submit(lambda l : group_counts(l, executor), result)
+        #group, count = future.result()
         print >> sys.stderr, "Done"
 
         print >> sys.stderr, "Compute JPMF..."
@@ -100,7 +100,10 @@ def main(args):
                     rows.append(row)
 
             print >> sys.stderr, "Starting computation for CMAX=%d" % (cmax)
+            start = time.time()    
             entropy = compute_entropy(rows, cmax)
+            end = time.time()
+            print >> sys.stderr, "Elapsed time: %s" % (str(end - start))
             print entropy
 
             with open(sys.argv[3], "a") as fout:
