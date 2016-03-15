@@ -337,7 +337,8 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
         ax.set_xticks(ind + (width * 1.5))
         ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
                             '128-bit', '160-bit'))
-        autoLabel(ax, rects, 3, xShift)
+        sign = [-1 if x < 0 else 1 for x in mean]
+        autoLabel(ax, rects, 0, 3, xShift, sign)
 
         # Save to file.
         pp = PdfPages('tlv_vs_obfuscate_NameLengths_stdev.pdf')
@@ -357,7 +358,8 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
         ax.set_xticks(ind + (width * 1.5))
         ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
                             '128-bit', '160-bit'))
-        autoLabel(ax, rects, 3, xShift)
+        sign = [-1 if x < 0 else 1 for x in mean]
+        autoLabel(ax, rects, 0, 3, xShift, sign)
 
         # Save to file.
         pp = PdfPages('tlv_vs_obfuscate_NameLengths_yerr.pdf')
@@ -378,7 +380,13 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
     ax.set_xticks(ind + (width * 1.5))
     ax.set_xticklabels(('16-bit', '32-bit', '48-bit', '64-bit', '128-bit',
                         '160-bit'))
-    autoLabel(ax, rects, 10, 0)
+    limits = ax.axis()
+    if limits[2] < 0:
+        ax.set_ylim([limits[2] - 50, limits[3] + 50])
+    else:
+        ax.set_ylim([limits[2], limits[3] + 50])
+    sign = [-1 if x < 0 else 1 for x in meanDiff]
+    autoLabel(ax, rects, 20, 3, 0, sign)
 
     # Save to file.
     pp = PdfPages('tlv_vs_obfuscate_NameLengthsDiff.pdf')
@@ -400,13 +408,20 @@ def plot(sizes, legendText):
     plt.ylim(0, lims[1])
 
 
-def autoLabel(ax, rects, heightDiff, xShift):
+def autoLabel(ax, rects, negativeHeightDiff, positiveHeightDiff, xShift, sign):
     # Attach some text labels.
+    i = 0
     for rect in rects:
         height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2. + xShift, height + heightDiff,
-                '%d' % int(height),
+        if sign[i] == -1:
+            heightDiff = negativeHeightDiff
+        else:
+            heightDiff = positiveHeightDiff
+        ax.text(rect.get_x() + rect.get_width()/2. + xShift,
+                sign[i] * (height + heightDiff),
+                '%d' % int(sign[i] * height),
                 ha='center', va='bottom')
+        i = i + 1
 
 
 def saveResults(verbose, errorType):
