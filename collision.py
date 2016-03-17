@@ -160,6 +160,8 @@ def processFile(filePath):
                 name = "/" + "/".join(components[:i + 1])
 
                 # Calculate hashes and insert them into the corresponding DHT.
+                # ANDing converts the hash output to unsigned decimal numbers.
+
                 # CRC.
                 dht_crc16[i].insert(crc16.crc16xmodem(name) & 0xFFFF)
                 dht_crc32[i].insert(binascii.crc32(name) & 0xFFFFFFFF)
@@ -205,26 +207,26 @@ def processResults():
         if counters[i] == 0:
             continue
 
-        crc16_collision.append(countCollition(DHT_PATH + "/crc16/" +
+        crc16_collision.append(calculateCollision(DHT_PATH + "/crc16/" +
                                               str(i + 1)) / float(counters[i]))
-        crc32_collision.append(countCollition(DHT_PATH + "/crc32/" +
+        crc32_collision.append(calculateCollision(DHT_PATH + "/crc32/" +
                                               str(i + 1)) / float(counters[i]))
-        murmur32_collision.append(countCollition(DHT_PATH + "/murmur32/" +
+        murmur32_collision.append(calculateCollision(DHT_PATH + "/murmur32/" +
                                                  str(i + 1)) /
                                   float(counters[i]))
-        sip_collision.append(countCollition(DHT_PATH + "/sip/" +
+        sip_collision.append(calculateCollision(DHT_PATH + "/sip/" +
                                             str(i + 1)) / float(counters[i]))
-        murmur128_collision.append(countCollition(DHT_PATH + "/murmur128/" +
+        murmur128_collision.append(calculateCollision(DHT_PATH + "/murmur128/" +
                                                   str(i + 1)) /
                                    float(counters[i]))
-        sha1_collision.append(countCollition(DHT_PATH + "/sha1/" +
+        sha1_collision.append(calculateCollision(DHT_PATH + "/sha1/" +
                                              str(i + 1)) / float(counters[i]))
 
     return (crc16_collision, crc32_collision, murmur32_collision, sip_collision,
             murmur128_collision, sha1_collision)
 
 
-def countCollition(path):
+def calculateCollision(path):
     count = 0
     for filePath in [os.path.join(path, f) for f in
                      os.listdir(path) if
