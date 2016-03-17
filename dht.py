@@ -44,6 +44,7 @@ class DHT:
 
         counter = 0
         fileName = os.path.join(self.path, str(htId))
+        # Open the file and look for the matching hashValue.
         if os.path.isfile(fileName):
             with open(fileName, "r") as htFile:
                 for line in htFile:
@@ -62,12 +63,14 @@ class DHT:
         return htId
 
 
+    # Append hashValue to the end of htId hash table.
     def __appendHT(self, htId, hashValue, counter):
         fileName = os.path.join(self.path, str(htId))
         with open(fileName, "a+") as htFile:
             htFile.write(str(hashValue) + ":" + str(counter) + "\n")
 
 
+    # Copy the specified htID hash table without the corresponding hashValue.
     def __copyHT(self, htId, hashValue):
         fileName = os.path.join(self.path, str(htId))
         tmpFileName = os.path.join(self.path, str(htId) + ".tmp")
