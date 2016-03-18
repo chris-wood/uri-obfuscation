@@ -11,6 +11,7 @@ import os
 import os.path
 import shutil
 import pickle
+import obfuscate
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -24,26 +25,39 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 
 COMPONENT_LIMIT = 20
-CRC16_SIZE = 16
-CRC32_SIZE = 32
-MURMUR32_SIZE = 32
-SIP_SIZE = 64
-MURMUR128_SIZE = 128
-SHA1_SIZE = 160
 NUM_OF_HASHTABLES = 100
 DHT_PATH = "dht_tmp/"
 
-dht_crc16 = []
-dht_crc32 = []
-dht_murmur32 = []
-dht_sip = []
-dht_murmur128 = []
-dht_sha1 = []
 counters = []
+hashUsed = ["CRC16", "CRC32", "MMH3", "SIPHASH", "MMH3_128", "SHA1"]
+dhts = {
+    "CRC16"    : [],
+    "CRC32"    : [],
+    "MMH3"     : [],
+    "SIPHASH"  : [],
+    "MMH3_128" : [],
+    "SHA1"     : []
+}
+obfuscators = {
+    "CRC16"    : obfuscate.ObfuscatorCRC16(),
+    "CRC32"    : obfuscate.ObfuscatorCRC32(),
+    "MMH3"     : obfuscate.ObfuscatorMMH3(),
+    "SIPHASH"  : obfuscate.ObfuscatorSipHash(),
+    "MMH3_128" : obfuscate.ObfuscatorMMH3_128(),
+    "SHA1"     : obfuscate.ObfuscatorSHA1()
+}
+labels = {
+    "CRC16"    : "CRC 16-bit",
+    "CRC32"    : "CRC 32-bit",
+    "MMH3"     : "MurmurHash 32-bit",
+    "SIPHASH"  : "SipHash 64-bit",
+    "MMH3_128" : "MurmurHash 128-bit",
+    "SHA1"     : "SHA1 160-bit"
+}
 
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
-    print "                           -c <componentsLimit>"
+    print "                    -c <componentsLimit>"
     print ""
     print "\t-i <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
@@ -85,7 +99,7 @@ def main(argv):
             inputPath = arg
         elif opt in ("-o", "--otype"):
             outputType = arg
-        elif opt == "-p":
+        elif opt in ("-p", "--plot"):
             plot = True
         else:
             usage()
@@ -106,18 +120,9 @@ def main(argv):
         shutil.rmtree(DHT_PATH, ignore_errors=True)
 
     for i in range(0, COMPONENT_LIMIT):
-        dht_crc16.append(dht.DHT(CRC16_SIZE, NUM_OF_HASHTABLES,
-                                 DHT_PATH + "/crc16/" + str(i + 1)))
-        dht_crc32.append(dht.DHT(CRC32_SIZE, NUM_OF_HASHTABLES,
-                                 DHT_PATH + "/crc32/" + str(i + 1)))
-        dht_murmur32.append(dht.DHT(MURMUR32_SIZE, NUM_OF_HASHTABLES,
-                                 DHT_PATH + "/murmur32/" + str(i + 1)))
-        dht_sip.append(dht.DHT(SIP_SIZE, NUM_OF_HASHTABLES,
-                                 DHT_PATH + "/sip/" + str(i + 1)))
-        dht_murmur128.append(dht.DHT(MURMUR128_SIZE, NUM_OF_HASHTABLES,
-                                 DHT_PATH + "/murmur128/" + str(i + 1)))
-        dht_sha1.append(dht.DHT(SHA1_SIZE, NUM_OF_HASHTABLES,
-                                 DHT_PATH + "/sha1/" + str(i + 1)))
+        for key in hashUsed:
+            dhts[key].append(dht.DHT(obfuscators[key].size(), NUM_OF_HASHTABLES,
+                                     DHT_PATH + "/" + key + "/" + str(i + 1)))
 
     # Initialize all counters to 0.
     counters = [0] * COMPONENT_LIMIT
@@ -160,73 +165,38 @@ def processFile(filePath):
                 name = "/" + "/".join(components[:i + 1])
 
                 # Calculate hashes and insert them into the corresponding DHT.
-                # ANDing converts the hash output to unsigned decimal numbers.
-
-                # CRC.
-                dht_crc16[i].insert(crc16.crc16xmodem(name) & 0xFFFF)
-                dht_crc32[i].insert(binascii.crc32(name) & 0xFFFFFFFF)
-
-                # Murmur hash.
-                dht_murmur32[i].insert(mmh3.hash(name) & 0xFFFFFFFF)
-                dht_murmur128[i].insert(mmh3.hash128(name) &
-                                        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
-
-                # Siphash.
-                key = "0123456789ABCDEF"
-                sip = siphash.SipHash_2_4(key)
-                sip.update(name)
-                dht_sip[i].insert(sip.hash() & 0xFFFFFFFFFFFFFFFF)
-
-                # SHA1.
-                m = hashlib.new("sha1")
-                m.update(name)
-                dht_sha1[i].insert(int(m.hexdigest(), 16))
+                for key in hashUsed:
+                    dhts[key][i].insert(obfuscators[key].obfuscateDecimal(name))
 
 
 def outputResults(outputType):
-    crc16_collision, crc32_collision, murmur32_collision, sip_collision, \
-        murmur128_collision, sha1_collision = processResults()
+    collisions = processResults()
 
     if outputType == "plot":
-        plotResults(crc16_collision, crc32_collision, murmur32_collision,
-                    sip_collision, murmur128_collision, sha1_collision)
+        plotResults(collisions)
     elif outputType == "text":
-        saveResults(crc16_collision, crc32_collision, murmur32_collision,
-                    sip_collision, murmur128_collision, sha1_collision)
+        saveResults(collisions)
 
 
 def processResults():
-    crc16_collision = []
-    crc32_collision = []
-    murmur32_collision = []
-    sip_collision = []
-    murmur128_collision = []
-    sha1_collision = []
+    collisions = {}
 
     for i in range(0, COMPONENT_LIMIT):
         if counters[i] == 0:
             continue
 
-        crc16_collision.append(calculateCollision(DHT_PATH + "/crc16/" +
-                                              str(i + 1)) / float(counters[i]))
-        crc32_collision.append(calculateCollision(DHT_PATH + "/crc32/" +
-                                              str(i + 1)) / float(counters[i]))
-        murmur32_collision.append(calculateCollision(DHT_PATH + "/murmur32/" +
-                                                 str(i + 1)) /
-                                  float(counters[i]))
-        sip_collision.append(calculateCollision(DHT_PATH + "/sip/" +
-                                            str(i + 1)) / float(counters[i]))
-        murmur128_collision.append(calculateCollision(DHT_PATH + "/murmur128/" +
-                                                  str(i + 1)) /
-                                   float(counters[i]))
-        sha1_collision.append(calculateCollision(DHT_PATH + "/sha1/" +
-                                             str(i + 1)) / float(counters[i]))
+        for key in hashUsed:
+            if key not in collisions:
+                collisions[key] = []
 
-    return (crc16_collision, crc32_collision, murmur32_collision, sip_collision,
-            murmur128_collision, sha1_collision)
+            collisions[key].append(calculateCollision(DHT_PATH + "/" + key +
+                                                      "/" + str(i + 1),
+                                                      float(counters[i])))
+
+    return collisions
 
 
-def calculateCollision(path):
+def calculateCollision(path, total):
     count = 0
     for filePath in [os.path.join(path, f) for f in
                      os.listdir(path) if
@@ -237,20 +207,15 @@ def calculateCollision(path):
                 if int(chunk[1]) > 1:
                     count = count + int(chunk[1])
 
-    return count
+    return count / float(total)
 
 
-def plotResults(crc16_collision, crc32_collision, murmur32_collision,
-                sip_collision, murmur128_collision, sha1_collision):
+def plotResults(collisions):
     print "Plotting collision results..."
     plt.hold(True)
 
-    plot(crc16_collision, "CRC 16-bit")
-    plot(crc32_collision, "CRC 32-bit")
-    plot(murmur32_collision, "MurmurHash 32-bit")
-    plot(sip_collision, "SipHash 64-bit")
-    plot(murmur128_collision, "MurmurHash 128-bit")
-    plot(sha1_collision, "SHA1 160-bit")
+    for key in hashUsed:
+        plot(collisions[key], labels[key])
 
     finalizePlot()
 
@@ -274,66 +239,28 @@ def finalizePlot():
     plt.cla()
 
 
-def saveResults(crc16_collision, crc32_collision, murmur32_collision,
-                sip_collision, murmur128_collision, sha1_collision):
+def saveResults(collisions):
     if os.path.isdir("collision_output"):
         shutil.rmtree("collision_output", ignore_errors=True)
     os.makedirs("collision_output")
 
     print "Saving results in text format..."
-    print "\t./collision_output/crc16.out..."
-    with open("collision_output/crc16.out", "w+") as outFile:
-        pickle.dump(crc16_collision, outFile)
-
-    print "\t./collision_output/crc32.out..."
-    with open("collision_output/crc32.out", "w+") as outFile:
-        pickle.dump(crc32_collision, outFile)
-
-    print "\t./collision_output/murmur32.out..."
-    with open("collision_output/murmur32.out", "w+") as outFile:
-        pickle.dump(murmur32_collision, outFile)
-
-    print "\t./collision_output/sip.out..."
-    with open("collision_output/sip.out", "w+") as outFile:
-        pickle.dump(sip_collision, outFile)
-
-    print "\t./collision_output/murmur128.out..."
-    with open("collision_output/murmur128.out", "w+") as outFile:
-        pickle.dump(murmur128_collision, outFile)
-
-    print "\t./collision_output/sha1.out..."
-    with open("collision_output/sha1.out", "w+") as outFile:
-        pickle.dump(sha1_collision, outFile)
+    for key in hashUsed:
+        print "\t./collision_output/" + key + ".out..."
+        with open("collision_output/" + key + ".out", "w+") as outFile:
+            pickle.dump(collisions[key], outFile)
 
 
 def plotResultsFromFile(inputPath):
+    collisions = {}
+
     print "Reading results stored in text format"
-    print "\t" + os.path.join(inputPath, "crc16.out") + "..."
-    with open(os.path.join(inputPath, "crc16.out"), "r") as inFile:
-        crc16_collision = pickle.load(inFile)
+    for key in hashUsed:
+        print "\t" + os.path.join(inputPath, key + ".out") + "..."
+        with open(os.path.join(inputPath, key + ".out"), "r") as inFile:
+            collisions[key] = pickle.load(inFile)
 
-    print "\t" + os.path.join(inputPath, "crc32.out") + "..."
-    with open(os.path.join(inputPath, "crc32.out"), "r") as inFile:
-        crc32_collision = pickle.load(inFile)
-
-    print "\t" + os.path.join(inputPath, "murmur32.out") + "..."
-    with open(os.path.join(inputPath, "murmur32.out"), "r") as inFile:
-        murmur32_collision = pickle.load(inFile)
-
-    print "\t" + os.path.join(inputPath, "sip.out") + "..."
-    with open(os.path.join(inputPath, "sip.out"), "r") as inFile:
-        sip_collision = pickle.load(inFile)
-
-    print "\t" + os.path.join(inputPath, "murmur128.out") + "..."
-    with open(os.path.join(inputPath, "murmur128.out"), "r") as inFile:
-        murmur128_collision = pickle.load(inFile)
-
-    print "\t" + os.path.join(inputPath, "sha1.out") + "..."
-    with open(os.path.join(inputPath, "sha1.out"), "r") as inFile:
-        sha1_collision = pickle.load(inFile)
-
-    plotResults(crc16_collision, crc32_collision, murmur32_collision,
-                sip_collision, murmur128_collision, sha1_collision)
+    plotResults(collisions)
 
 
 if __name__ == "__main__":
