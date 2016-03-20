@@ -57,6 +57,7 @@ labels = {
     "SHA1"     : "SHA1 160-bit"
 }
 
+
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
     print "                    -c <componentsLimit>"
@@ -182,9 +183,12 @@ def outputResults(outputType):
 
 
 def processResults():
+    global start_time
     collisions = {}
 
+    print "Processing results..."
     for i in range(0, COMPONENT_LIMIT):
+        print "\t" + str(i + 1) + " component(s)..."
         if counters[i] == 0:
             continue
 
@@ -195,6 +199,7 @@ def processResults():
             collisions[key].append(calculateCollision(DHT_PATH + "/" + key +
                                                       "/" + str(i + 1),
                                                       float(counters[i])))
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return collisions
 
