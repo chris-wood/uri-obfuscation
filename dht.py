@@ -4,6 +4,7 @@ import os.path
 import shutil
 
 class DHT:
+    # hashSize is in bits.
     def __init__(self, hashSize, numOfHT, path):
         self.hashSize = hashSize
         self.numOfHT = numOfHT
@@ -13,7 +14,8 @@ class DHT:
         self.htSize = int(size)
         if int(size) != size:
             self.numOfHT = self.numOfHT + 1
-            print "Adjusting number of hash tables to " + str(self.numOfHT)
+            print "Adjusting number of hash tables in '" + path + "' to " + \
+                str(self.numOfHT)
 
         self.path = path
         # Create the hash table directory, first remove it if it exists.
@@ -21,7 +23,7 @@ class DHT:
             shutil.rmtree(path, ignore_errors=True)
         os.makedirs(path)
 
-    # hashValue is in hex format.
+    # hashValue is a big (long) integer.
     def insert(self, hashValue):
         htId = self._calculateHTId(hashValue)
 
