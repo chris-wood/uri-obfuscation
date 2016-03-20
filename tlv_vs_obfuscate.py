@@ -39,7 +39,7 @@ def usage():
     print ""
     print "\t-i <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
-    print "\t\tdirectory with a lot of files containing URL lists. If -p is"
+    print "\t\tdirectory with a lot of files containing URI lists. If -p is"
     print "\t\tprovided, <inputPath> is the path of the output files to be"
     print "\t\tplotted."
     print "\t-o <outputType>"
@@ -59,9 +59,11 @@ def usage():
     print "\t\tis the error type, either standard deviation 'stdev', minumum and"
     print "\t\tmaximum value 'yerr', or 'both'."
     print "\t-l"
-    print "\t\tis the length limit of the URI."
+    print "\t\t(optional) is the length limit of the URI. The default is 2000"
+    print "\t\tbytes"
     print "\t-c"
-    print "\t\tis the maximum number of components in a URI."
+    print "\t\t(optional) is the maximum number of components in a URI. The"
+    print "\t\tdefault is 80."
 
 
 def main(argv):
@@ -76,24 +78,25 @@ def main(argv):
     verbose = False
     errorType = "both"
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pve:l:c:", ["ipath=", "otype=",
-                                                          "etype=", "llimit=",
-                                                          "climit"])
+        opts, args = getopt.getopt(argv,"hi:o:pve:l:c:", ["help", "ipath=",
+                                                          "otype=", "plot",
+                                                          "verbose", "etype=",
+                                                          "llimit=", "climit"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
 
     for opt, arg in opts:
-        if opt == "-h":
+        if opt in ("-h", "--help"):
             usage()
             sys.exit()
         elif opt in ("-i", "--ipath"):
             inputPath = arg
         elif opt in ("-o", "--otype"):
             outputType = arg
-        elif opt == "-p":
+        elif opt in ("-p", "--plot"):
             plot = True
-        elif opt == "-v":
+        elif opt in ("-v", "--verbose"):
             verbose = True
         elif opt in ("-e", "--etype"):
             errorType = arg
@@ -141,7 +144,7 @@ def main(argv):
                 processFile(filePath)
             print("--- %s seconds ---" % (time.time() - start_time))
 
-        plotResults(outputType, verbose, errorType)
+        outputResults(outputType, verbose, errorType)
         print("--- %s seconds ---" % (time.time() - start_time))
     else:
         plotResultsFromFile(inputPath, verbose, errorType)
@@ -197,7 +200,7 @@ def processFile(filePath):
             hash160.append(hash160EncodingSize)
 
 
-def plotResults(outputType, verbose, errorType):
+def outputResults(outputType, verbose, errorType):
     if outputType == "plot":
         if verbose:
             plotPDF()
@@ -218,42 +221,49 @@ def plotResultsFromFile(inputPath, verbose, errorType):
         with open(os.path.join(inputPath, "tlv.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "TLV format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash16.out") + "..."
         with open(os.path.join(inputPath, "hash16.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "16-bit format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash32.out") + "..."
         with open(os.path.join(inputPath, "hash32.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "32-bit format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash48.out") + "..."
         with open(os.path.join(inputPath, "hash48.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "48-bit format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash64.out") + "..."
         with open(os.path.join(inputPath, "hash64.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "64-bit format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash128.out") + "..."
         with open(os.path.join(inputPath, "hash128.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "128-bit format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         print "\t" + os.path.join(inputPath, "hash160.out") + "..."
         with open(os.path.join(inputPath, "hash160.out"), "r") as inFile:
             tmp = pickle.load(inFile)
         plot(tmp, "160-bit format")
+        del tmp
         print("--- %s seconds ---" % (time.time() - start_time))
 
         finalizePlotPDF()
@@ -310,6 +320,7 @@ def finalizePlotPDF():
     plt.grid(True)
     plt.xlabel("Name length (bytes)")
     plt.ylabel("Probability density function")
+    plt.xlim([0, 500])
     plt.legend()
 
     # Save to file.
@@ -493,8 +504,6 @@ def saveResults(verbose, errorType):
         print "\t./tlv_vs_obfuscate_output/max_yerr.out..."
         with open("tlv_vs_obfuscate_output/max_yerr.out", "w+") as outFile:
             pickle.dump(max_yerr, outFile)
-
-    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def calculateMeanErr(errorType):

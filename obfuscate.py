@@ -30,40 +30,105 @@ class Obfuscator(object):
     def obfuscate(self, blob):
         pass # abstract
 
+    def obfuscateDecimal(self, blob):
+        pass # abstract
+
+    def size(self):
+        pass # abstract
+
     def __str__(self):
         return self.name
+
 
 class ObfuscatorCRC16(Obfuscator):
     def __init__(self):
         Obfuscator.__init__(self, self.__class__.__name__)
 
     def obfuscate(self, blob):
+        return str(self.obfuscateDecimal(self, blob))
+
+    def obfuscateDecimal(self, blob):
         crc = crc16.crc16xmodem(blob)
-        return str(crc)
+        return crc & 0xFFFF
+
+    def size(self):
+        return 16
+
 
 class ObfuscatorCRC32(Obfuscator):
     def __init__(self):
         Obfuscator.__init__(self, self.__class__.__name__)
 
     def obfuscate(self, blob):
-        return str(binascii.crc32(blob))
+        return str(self.obfuscateDecimal(self, blob))
+
+    def obfuscateDecimal(self, blob):
+        return binascii.crc32(blob) & 0xFFFFFFFF
+
+    def size(self):
+        return 32
+
 
 class ObfuscatorMMH3(Obfuscator):
     def __init__(self):
         Obfuscator.__init__(self, self.__class__.__name__)
 
     def obfuscate(self, blob):
-        return str(mmh3.hash_bytes(blob))
+        return str(self.obfuscateDecimal(self, blob))
+
+    def obfuscateDecimal(self, blob):
+        return mmh3.hash(blob) & 0xFFFFFFFF
+
+    def size(self):
+        return 32
+
+
+class ObfuscatorMMH3_128(Obfuscator):
+    def __init__(self):
+        Obfuscator.__init__(self, self.__class__.__name__)
+
+    def obfuscate(self, blob):
+        return str(self.obfuscateDecimal(self, blob))
+
+    def obfuscateDecimal(self, blob):
+        return mmh3.hash128(blob) & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+    def size(self):
+        return 128
+
 
 class ObfuscatorSipHash(Obfuscator):
     def __init__(self):
         Obfuscator.__init__(self, self.__class__.__name__)
 
     def obfuscate(self, blob):
+        return str(self.obfuscateDecimal(self, blob))
+
+    def obfuscateDecimal(self, blob):
         key = '0123456789ABCDEF'
         sip = siphash.SipHash_2_4(key)
         sip.update(blob)
-        return str(sip.hash())
+        return sip.hash() & 0xFFFFFFFFFFFFFFFF
+
+    def size(self):
+        return 64
+
+
+class ObfuscatorSHA1(Obfuscator):
+    def __init__(self):
+        Obfuscator.__init__(self, self.__class__.__name__)
+
+    def obfuscate(self, blob):
+        hasher = hashlib.new("sha1")
+        hasher.update(blob)
+        return hasher.hexdigest()
+
+    def obfuscateDecimal(self, blob):
+        return int(self.obfuscate(blob), 16)
+
+    def size(self):
+        return 160
+
 
 class ObfuscatorSHA256(Obfuscator):
     def __init__(self):
@@ -74,6 +139,13 @@ class ObfuscatorSHA256(Obfuscator):
         hasher.update(blob)
         return hasher.hexdigest()
 
+    def obfuscateDecimal(self, blob):
+        return int(self.obfuscate(blob), 16)
+
+    def size(self):
+        return 256
+
+
 class ObfuscatorHMAC(Obfuscator):
     def __init__(self):
         Obfuscator.__init__(self, self.__class__.__name__)
@@ -83,6 +155,7 @@ class ObfuscatorHMAC(Obfuscator):
         h = hmac.HMAC(self.key, hashes.SHA256(), backend=default_backend())
         h.update(blob)
         return h.finalize()
+
 
 class ObfuscatorAesCBC(Obfuscator):
     def __init__(self, key = "", iv = ""):
@@ -103,6 +176,7 @@ class ObfuscatorAesCBC(Obfuscator):
         ct = encryptor.update(pad(blob)) + encryptor.finalize()
         return base64.b64encode("".join([self.iv, ct]))
 
+
 class ObfuscatorAesGCM(Obfuscator):
     def __init__(self, key = "", iv = ""):
         Obfuscator.__init__(self, self.__class__.__name__)
@@ -115,6 +189,7 @@ class ObfuscatorAesGCM(Obfuscator):
         encryptor = cipher.encryptor()
         ct = encryptor.update(blob) + encryptor.finalize()
         return base64.b64encode("".join([self.iv, ct, encryptor.tag]))
+
 
 class URI(object):
     def __init__(self, uri_string, obfuscator):
@@ -140,6 +215,7 @@ class URI(object):
 
     def __str__(self):
         return str(self.uri)
+
 
 def obfuscate(lines, index, flatten, obfuscator):
     uris = [URI(line, obfuscator) for line in lines]
