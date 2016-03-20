@@ -73,10 +73,18 @@ def convertFile(filePath, outputPath):
             for line in inFile:
                 # Strip and split line.
                 components = line.strip("\r").strip("\n").strip("http://").strip(
-                    "https://").strip("ftp://").strip("www.").split("/")
+                    "https://").strip("ftp://").split("/")
                 
-                # Drop port number if any.
+                # Ignore username/password if any.
+                tmp = components[0].split("@")
+                if len(tmp) == 2:
+                    components[0] = tmp[1]
+
+                # Ignore port number if any.
                 components[0] = components[0].split(":")[0]
+
+                # Ignore www.
+                components[0] = components[0].strip("www.")
 
                 # Reconstruct the name. If the domain is an IP address, keep it
                 # as it is. If not, reverse it.
@@ -85,7 +93,8 @@ def convertFile(filePath, outputPath):
                     name = "/".join(components)
                 else:
                     domain = components[0].split(".")
-                    name = "/".join(domain[::-1]) + "/" + "/".join(components[1:])
+                    name = "/".join(domain[::-1]) + "/" + "/".join(
+                        components[1:])
 
                 outFile.write(name + "\n")
 
