@@ -4,6 +4,7 @@ import os
 import os.path
 import ntpath
 import shutil
+from urlparse import urlparse
 
 
 def usage():
@@ -72,9 +73,9 @@ def convertFile(filePath, outputPath):
         with open(os.path.join(outputPath, fileName), "w") as outFile:
             for line in inFile:
                 # Strip and split line.
-                components = line.strip("\r").strip("\n").strip("http://").strip(
-                    "https://").strip("ftp://").split("/")
-                
+                components = strip_scheme(
+                    line.strip("\r").strip("\n")).split("/")
+
                 # Ignore username/password if any.
                 tmp = components[0].split("@")
                 if len(tmp) == 2:
@@ -97,6 +98,12 @@ def convertFile(filePath, outputPath):
                         components[1:])
 
                 outFile.write(name + "\n")
+
+
+def strip_scheme(url):
+    parsed = urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
 
 
 def validate_ip(s):
