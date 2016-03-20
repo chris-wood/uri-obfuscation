@@ -57,16 +57,16 @@ def main(argv):
     os.makedirs(outputPath)
 
     if os.path.isfile(inputPath):
-        processFile(inputPath, outputPath)
+        convertFile(inputPath, outputPath)
     else:
         for filePath in [os.path.join(inputPath, f) for f in
                          os.listdir(inputPath) if
                          os.path.isfile(os.path.join(inputPath, f))]:
-            processFile(filePath, outputPath)
+            convertFile(filePath, outputPath)
 
 
-def processFile(filePath, outputPath):
-    print "Processing '" + filePath + "'..."
+def convertFile(filePath, outputPath):
+    print "Converting '" + filePath + "'..."
     with open(filePath, "r") as inFile:
         fileName = ntpath.basename(filePath)
         with open(os.path.join(outputPath, fileName), "w") as outFile:
