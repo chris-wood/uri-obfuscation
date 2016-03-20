@@ -14,6 +14,8 @@ import pickle
 import obfuscate
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from urlparse import urlparse
+
 
 ### "HASH" FUNCTIONS TO TRY
 # CRC16 (16 bits)
@@ -155,8 +157,9 @@ def processFile(filePath):
     with open(filePath, "r") as inFile:
         for line in inFile:
             for i in range(0, COMPONENT_LIMIT):
-                components = line.strip("http://").strip("https://").strip(
-                    "ftp://").split("/")
+                components = strip_scheme(
+                    line.strip("\r").strip("\n")).split("/")
+
                 if len(components) < i + 1:
                     continue
 
@@ -261,6 +264,12 @@ def plotResultsFromFile(inputPath):
             collisions[key] = pickle.load(inFile)
 
     plotResults(collisions)
+
+
+def strip_scheme(url):
+    parsed = urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
 
 
 if __name__ == "__main__":
