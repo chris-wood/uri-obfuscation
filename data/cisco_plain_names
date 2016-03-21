@@ -1,0 +1,7 @@
+cisco_uris_AESCBC_21.txt.csv
+cisco_uris_AESGCM_21.txt.csv
+cisco_uris_CRC16_21.txt.csv
+cisco_uris_CRC32_21.txt.csv
+cisco_uris_MMH3_21.txt.csv
+cisco_uris_SHA256_21.txt.csv
+cisco_uris_SIPHASH_21.txt.csv
