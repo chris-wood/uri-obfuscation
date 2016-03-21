@@ -57,6 +57,7 @@ labels = {
     "SHA1"     : "SHA1 160-bit"
 }
 
+
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
     print "                    -c <componentsLimit>"
@@ -129,16 +130,15 @@ def main(argv):
     # Initialize all counters to 0.
     counters = [0] * COMPONENT_LIMIT
 
+    print "Processing input files..."
     if plot == False:
         if os.path.isfile(inputPath):
             processFile(inputPath)
-            print("--- %s seconds ---" % (time.time() - start_time))
         else:
             for filePath in [os.path.join(inputPath, f) for f in
                              os.listdir(inputPath) if
                              os.path.isfile(os.path.join(inputPath, f))]:
                 processFile(filePath)
-            print("--- %s seconds ---" % (time.time() - start_time))
 
         outputResults(outputType)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -151,9 +151,10 @@ def main(argv):
 
 
 def processFile(filePath):
+    global start_time
     global counters
 
-    print "Processing '" + filePath + "'..."
+    print "\t'" + filePath + "'..."
     with open(filePath, "r") as inFile:
         for line in inFile:
             for i in range(0, COMPONENT_LIMIT):
@@ -170,6 +171,7 @@ def processFile(filePath):
                 # Calculate hashes and insert them into the corresponding DHT.
                 for key in hashUsed:
                     dhts[key][i].insert(obfuscators[key].obfuscateDecimal(name))
+    print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
 def outputResults(outputType):
@@ -182,9 +184,12 @@ def outputResults(outputType):
 
 
 def processResults():
+    global start_time
     collisions = {}
 
+    print "Processing results..."
     for i in range(0, COMPONENT_LIMIT):
+        print "\t" + str(i + 1) + " component(s)..."
         if counters[i] == 0:
             continue
 
@@ -195,6 +200,7 @@ def processResults():
             collisions[key].append(calculateCollision(DHT_PATH + "/" + key +
                                                       "/" + str(i + 1),
                                                       float(counters[i])))
+        print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return collisions
 
