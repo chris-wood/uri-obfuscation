@@ -1,5 +1,4 @@
 import getopt
-import dht
 import crc16
 import binascii
 import mmh3
@@ -15,6 +14,7 @@ import obfuscate
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from urlparse import urlparse
+from pydht.local.disk import LocalDiskDHT
 
 
 ### "HASH" FUNCTIONS TO TRY
@@ -124,8 +124,9 @@ def main(argv):
 
     for i in range(0, COMPONENT_LIMIT):
         for key in hashUsed:
-            dhts[key].append(dht.DHT(obfuscators[key].size(), NUM_OF_HASHTABLES,
-                                     DHT_PATH + "/" + key + "/" + str(i + 1)))
+            dhts[key].append(LocalDiskDHT(obfuscators[key].size(),
+                                          NUM_OF_HASHTABLES, DHT_PATH + "/" +
+                                          key + "/" + str(i + 1)))
 
     # Initialize all counters to 0.
     counters = [0] * COMPONENT_LIMIT
