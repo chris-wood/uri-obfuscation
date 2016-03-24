@@ -1,5 +1,4 @@
 import getopt
-import dht
 import crc16
 import binascii
 import mmh3
@@ -15,6 +14,8 @@ import obfuscate
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from urlparse import urlparse
+from pydht.local.disk import LocalDiskDHT
+from pydht.local.memory import LocalMemoryDHT
 
 
 ### "HASH" FUNCTIONS TO TRY
@@ -60,25 +61,29 @@ labels = {
 
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
-    print "                    -c <componentsLimit>"
+    print "                    -c <componentsLimit> -d <dhtType>"
     print ""
-    print "\t-i <inputPath>"
+    print "\t-i, --iPath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
     print "\t\tdirectory with a lot of files containing URI lists. If -p is"
     print "\t\tprovided, <inputPath> is the path of the output files to be"
     print "\t\tplotted."
-    print "\t-o <outputType>"
+    print "\t-o, --otype <outputType>"
     print "\t\tis optional and it is either 'text' or 'plot'. 'text' outputs the"
     print "\t\tgraphs in text format to be plotted later, while 'plot' (default)"
     print "\t\tplots the result."
-    print "\t-p"
+    print "\t-p, --plot"
     print "\t\tis optional and if present, tlv_vs_obfuscate plots the text"
     print "\t\toutput provided in <inputPath> directory."
-    print "\t-c"
+    print "\t-c, --climit <componentsLimit>"
     print "\t\tis the maximum number of components in a URI."
+    print "\t--d, --dtype <dhtType>"
+    print "\t\tidentifies where the DHT is stored, either 'disk' or 'memory',"
+    print "\t\tdefault is 'memory'."
 
 
 def main(argv):
+    global COMPONENT_LIMIT
     global start_time
     global counters
 
@@ -87,9 +92,11 @@ def main(argv):
     inputPath = ""
     outputType = "plot"
     plot = False
+    dhtType = "memory"
     try:
-        opts, args = getopt.getopt(argv,"hi:o:p", ["help", "ipath=", "otype=",
-                                                   "plot"])
+        opts, args = getopt.getopt(argv,"hi:o:pc:d:", ["help", "ipath=",
+                                                       "otype=", "plot",
+                                                       "climit=", "dtype"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -104,6 +111,10 @@ def main(argv):
             outputType = arg
         elif opt in ("-p", "--plot"):
             plot = True
+        elif opt in ("-c", "--climit"):
+            COMPONENT_LIMIT = int(arg)
+        elif opt in ("-d", "--dtype"):
+            dhtType = arg
         else:
             usage()
             sys.exit(2)
@@ -113,19 +124,40 @@ def main(argv):
         usage()
         sys.exit(2)
 
+    if outputType not in ("text", "plot"):
+        print "Output type must be either 'text' or 'plot'."
+        usage()
+        sys.exit(2)
+
     if outputType == "text" and plot == True:
         print "Output type 'plot' cannot be use with -p."
         usage()
         sys.exit(2)
 
+    if plot == True and os.path.isfile(inputPath):
+        print "If -p is used, <inputPath> must be a directory."
+        usage()
+        sys.exit(2)
+
+    if dhtType not in ("disk", "memory"):
+        print "DHT type must be either 'disk' or 'memory'."
+        usage()
+        sys.exit(2)
+
     # Prepare DHTs.
-    if os.path.isdir(DHT_PATH):
-        shutil.rmtree(DHT_PATH, ignore_errors=True)
+    if dhtType == "disk":
+        if os.path.isdir(DHT_PATH):
+            shutil.rmtree(DHT_PATH, ignore_errors=True)
 
     for i in range(0, COMPONENT_LIMIT):
         for key in hashUsed:
-            dhts[key].append(dht.DHT(obfuscators[key].size(), NUM_OF_HASHTABLES,
-                                     DHT_PATH + "/" + key + "/" + str(i + 1)))
+            if dhtType == "disk":
+                dhts[key].append(LocalDiskDHT(obfuscators[key].size(),
+                                              NUM_OF_HASHTABLES, DHT_PATH + "/" +
+                                              key + "/" + str(i + 1)))
+            elif dhtType == "memory":
+                dhts[key].append(LocalMemoryDHT(obfuscators[key].size(),
+                                                NUM_OF_HASHTABLES))
 
     # Initialize all counters to 0.
     counters = [0] * COMPONENT_LIMIT
@@ -147,7 +179,8 @@ def main(argv):
         print("--- %s seconds ---" % (time.time() - start_time))
 
     # Cleaning up.
-    shutil.rmtree(DHT_PATH, ignore_errors=True)
+    if dhtType == "disk":
+        shutil.rmtree(DHT_PATH, ignore_errors=True)
 
 
 def processFile(filePath):
@@ -197,26 +230,11 @@ def processResults():
             if key not in collisions:
                 collisions[key] = []
 
-            collisions[key].append(calculateCollision(DHT_PATH + "/" + key +
-                                                      "/" + str(i + 1),
-                                                      float(counters[i])))
+            collisions[key].append(dhts[key][i].calculateCollision())
+
         print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return collisions
-
-
-def calculateCollision(path, total):
-    count = 0
-    for filePath in [os.path.join(path, f) for f in
-                     os.listdir(path) if
-                     os.path.isfile(os.path.join(path, f))]:
-        with open(filePath, "r") as inFile:
-            for line in inFile:
-                chunk = line.split(":")
-                if int(chunk[1]) > 1:
-                    count = count + int(chunk[1])
-
-    return count / float(total)
 
 
 def plotResults(collisions):
