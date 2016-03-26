@@ -1,124 +1,79 @@
-import os
-import sys
-import math
-import logging
-import numpy as np
-import itertools
-
-import multiprocessing as mp
+from concurrent.futures import *
 import itertools
 import time
+import thread
+import sys
 import csv
+import numpy as np
 
-def entropy(jpmfs, *X):
-    n_instances = len(X[0])
-    H = 0
-    for classes in itertools.product(*[set(x) for x in X]):
-        # Only attempt to accumulate entropy bits if the combination is actually observed.
-        found = False
-        for i in range(len(jpmfs)):
-            if classes in jpmfs[i]:
-                found = True
-
-        if found:
-            v = np.array([True] * n_instances)
-            for predictions, c in zip(X, classes):
-                v = np.logical_and(v, predictions == c)
-            p = np.mean(v)
-            H += -p * np.log2(p) if p > 0 else 0
-    return H
-
-def fast_entropy(jpmfs, *X):
-    n_instances = len(X[0])
-    H = 0
-    for key in jpmfs[-1]:
-        classes = key
-        v = np.array([True] * n_instances)
-        for predictions, c in zip(X, classes):
-            v = np.logical_and(v, predictions == c)
-        p = np.mean(v)
-        H += -p * np.log2(p) if p > 0 else 0
-    return H
-
-def conditional_entropy(jpmfs, Xs):
-    if len(Xs) == 1:
-        return fast_entropy(jpmfs, *Xs)
-    else:
-        full = fast_entropy(jpmfs, *Xs)
-        partial = fast_entropy(jpmfs[0:len(jpmfs) - 1], *Xs[0:len(Xs)-1])
-        return full - partial
-
-def compute_joint_pmf(samples_list):
+def array_to_key(a, n):
     '''
-    Input: list of samples lists: [[sample-list-1], [sample-list-2], ...]
-    Output: map from (symbol1, symbol2, ...) -> probability
+    Turn a list of at least n components into a single element (key).
     '''
-    pmf = {}
+    return tuple(a[0:n])
 
-    num_samples = min(reduce(lambda x, y: x + [len(y)], samples_list, []))
-    num_lists = len(samples_list)
-    for i in range(num_samples): # for each row
-        symbols = []
-        for j in range(num_lists): # for each col
-            symbols.append(samples_list[j][i])
+def group_counts(result):
+    '''
+    Count the number each time each key occurs in the set.
 
-        key = tuple(symbols) # this is a key from a row "prefix"
-        pmf[key] = 1 if key not in pmf else pmf[key] + 1
+    Return the total number of elements in the set
+    '''
+    groups = {}
+    total = 0
+    for item in result:
+        groups[item] = 1 if item not in groups else groups[item] + 1
+        total += 1
+    return groups, total
 
-    total = num_samples
-    for key in pmf:
-        pmf[key] = pmf[key] / float(total)
+def entropy_product(p):
+    return p * np.log2(p) if p > 0 else 0
 
-    return pmf
+# A global reference to the matrix which stores our URI data in memory.
+matrix = None
 
-def compute_distribution(pairs, cmin, cmax):
-    if len(pairs) == 0:
-        print cmin, cmax, "Can't compute the PMF of nothing!"
-        return
+def compute_entropy(cmax):
+    '''
+    Compute the entropy based on the first cmax components in all URIs.
+    '''
+    global matrix
 
-    logging.debug("Starting run for cmin=%d cmax=%d" % (cmin, cmax))
-    logging.debug("Pairs = %s" % (str(pairs)))
+    rows = []
+    for row in matrix:
+        if len(row) >= cmax:
+            rows.append(row)
 
-    # jpmfs holds the joint PMFs from cmin:cmin+1, cmin:cmin+2, ..., cmin:cmax
-    # Each joint PMF is a map where keys are tuples and output is a probability (based on frequency of occurrence)
-    jpmfs = []
-    for i in range(cmin, cmax):
-        jpmf = compute_joint_pmf(pairs[cmin:(i+1)])
-        logging.debug(str(jpmf))
-        jpmfs.append(jpmf)
+    keys = map(lambda r : array_to_key(r, cmax), rows)
+    group, count = group_counts(keys)
+    jpmf = dict(map(lambda l : (l, float(group[l]) / count), group))
+    entropy = sum(map(lambda key : entropy_product(jpmf[key]), jpmf)) * -1
 
-    # Compute the joint and conditional entropy (they are not the same!)
-    Hj = fast_entropy(jpmfs, *pairs[cmin:cmax])
-    Hc = conditional_entropy(jpmfs, pairs[cmin:cmax])
+    return (cmax, entropy)
 
-    # Save the output
-    print >> sys.stderr, ("%d,%d,%f,%f" % (cmin, cmax, Hj, Hc))
-    print >> sys.stdout, ("%d,%d,%f,%f" % (cmin, cmax, Hj, Hc))
+def main(fname, num_cols):
+    '''
+    Compute the entropy over every URI combination sequence based on the URIs
+    in the given file.
 
-def main(args):
-    logging.basicConfig(filename=args[1] + ".log", level=logging.DEBUG, format='%(message)s')
+    fname = name of file that has the URIs.
+    num_cols = number of columns to use when computing the entropy.
+    '''
+    global results
+    global matrix
 
-    with open(args[1], "r") as f:
-        matrix = map(lambda line: line.strip()[1:].split("/"), f.readlines())
-        num_cols = int(args[2]) # max number of components in a URI
+    with open(fname, "r") as f:
+        matrix = map(lambda line: line.strip().split("/"), f.readlines())
         num_rows = len(matrix)
 
-        # For each possible column slice
-        for cmin in range(0, num_cols):
-            for cmax in range(cmin + 1, num_cols + 1):
-                # This will hold the columns of the matrix (the URI components)
-                columns = []
+        start = time.time()
+        with ProcessPoolExecutor(max_workers = 8) as executor:
+            for (cmax, entropy) in executor.map(compute_entropy, range(1, num_cols + 1)):
+                print cmax, entropy
+        end = time.time()
 
-                # For each column in the matrix
-                for c in range(cmax):
-                    column = map(lambda row : row[c], filter(lambda row : len(row) >= cmax, matrix))
-                    columns.append(np.array(column))
+        # for cmax in results:
+            # print cmax, results[cmax]
 
-                # Compute the distribution information from this column set (matrix)
-                # The rows are the unique URIs
-                # The columns are the column values of each URI
-                # =>  row i, column j = j-th component of the i-th URI
-                compute_distribution(columns, cmin, cmax)
+        print "Total time: %f" % (end - start)
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main(sys.argv[1], int(sys.argv[2]))
