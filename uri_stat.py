@@ -7,6 +7,7 @@ from pystat.running import RunningStat
 
 
 SEPARATOR = ","
+COMPONENTS_LIMIT = 20
 
 
 def usage():
@@ -41,24 +42,28 @@ def main(argv):
     nameLengthStat = RunningStat()
     compLengthStat = RunningStat()
     numOfCompsStat = RunningStat()
+    compsStat = []
+    for i in range(0, COMPONENTS_LIMIT):
+        compsStat.append(0)
 
     print "Processing input files..."
     if os.path.isfile(inputPath):
         processFile(inputPath, nameLengthStat, compLengthStat,
-                    numOfCompsStat)
+                    numOfCompsStat, compsStat)
     else:
         for filePath in [os.path.join(inputPath, f) for f in
                          os.listdir(inputPath) if
                          os.path.isfile(os.path.join(inputPath, f))]:
             processFile(filePath, nameLengthStat, compLengthStat,
-                        numOfCompsStat)
+                        numOfCompsStat, compsStat)
 
     saveResults(nameLengthStat, compLengthStat,
-                numOfCompsStat, SEPARATOR)
+                numOfCompsStat, compsStat, SEPARATOR)
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
-def processFile(filePath, nameLengthStat, compLengthStat, numOfCompsStat):
+def processFile(filePath, nameLengthStat, compLengthStat, numOfCompsStat,
+                compsStat):
     global start_time
 
     print "\t'" + filePath + "'..."
@@ -66,6 +71,9 @@ def processFile(filePath, nameLengthStat, compLengthStat, numOfCompsStat):
         for line in inFile:
             components = strip_scheme(
                 line.strip("\r").strip("\n")).split("/")
+
+            if len(components) <= 20:
+                compsStat[len(components)] = compsStat[len(components)] + 1
 
             name = "".join(components)
 
@@ -77,8 +85,9 @@ def processFile(filePath, nameLengthStat, compLengthStat, numOfCompsStat):
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
-def saveResults(nameLengthStat, compLengthStat, numOfCompsStat, separator):
-    print "Saving results..."
+def saveResults(nameLengthStat, compLengthStat, numOfCompsStat, compsStat,
+                separator):
+    print "Saving URI statistics..."
     with open("uri_stat.csv", "w") as outFile:
         outFile.write(separator + "Count" + separator + "Mean" + separator +
                       "Variance" + separator + "Stdev" + separator + "Min" +
@@ -104,6 +113,12 @@ def saveResults(nameLengthStat, compLengthStat, numOfCompsStat, separator):
                       str(numOfCompsStat.stdev()) + separator +
                       str(numOfCompsStat.min()) + separator +
                       str(numOfCompsStat.max()) + "\n")
+
+    print "Saving components statistics..."
+    with open("comps_stat.csv", "w") as outFile:
+        outFile.write("Number of Components" + separator + "Count\n")
+        for i in range(0, COMPONENTS_LIMIT):
+            outFile.write(str(i + 1) + separator + str(compsStat[i]) + "\n")
 
 
 def strip_scheme(url):
