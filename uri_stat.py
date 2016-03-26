@@ -80,7 +80,9 @@ def processFile(filePath, nameLengthStat, compLengthStat, numOfCompsStat):
 def saveResults(nameLengthStat, compLengthStat, numOfCompsStat, separator):
     print "Saving results..."
     with open("uri_stat.csv", "w") as outFile:
-        outFile.write(",Count,Mean,Variance,Stdev,Min,Max\n")
+        outFile.write(separator + "Count" + separator + "Mean" + separator +
+                      "Variance" + separator + "Stdev" + separator + "Min" +
+                      separator + "Max\n")
         outFile.write("Name length," +
                       str(nameLengthStat.count()) + separator +
                       str(nameLengthStat.mean()) + separator +
