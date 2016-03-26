@@ -39,7 +39,7 @@ def sequential_entropy(matrix, cmax):
         if len(row) >= cmax:
             rows.append(row)
 
-    keys = list(map(lambda r : array_to_key(r, cmax), rows))
+    keys = map(lambda r : array_to_key(r, cmax), rows)
     group, count = group_counts(keys)
     jpmf = dict(map(lambda l : (l, float(group[l]) / count), group))
     entropy = sum(map(lambda key : entropy_product(jpmf[key]), jpmf)) * -1

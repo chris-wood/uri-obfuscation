@@ -1,7 +1,4 @@
-from concurrent.futures import *
-import itertools
 import time
-import thread
 import sys
 import csv
 import numpy as np
@@ -12,7 +9,7 @@ def array_to_key(a, n):
     '''
     return tuple(a[0:n])
 
-def group_counts(result):
+def group_counts(keys):
     '''
     Count the number each time each key occurs in the set.
 
@@ -20,12 +17,15 @@ def group_counts(result):
     '''
     groups = {}
     total = 0
-    for item in result:
+    for item in keys:
         groups[item] = 1 if item not in groups else groups[item] + 1
         total += 1
     return groups, total
 
 def entropy_product(p):
+    '''
+    Compute the entropy of a given element given its probability of occurrence.
+    '''
     return p * np.log2(p) if p > 0 else 0
 
 # A global reference to the matrix which stores our URI data in memory.
@@ -46,7 +46,6 @@ def compute_entropy(cmax):
     group, count = group_counts(keys)
     jpmf = dict(map(lambda l : (l, float(group[l]) / count), group))
     entropy = sum(map(lambda key : entropy_product(jpmf[key]), jpmf)) * -1
-
     return (cmax, entropy)
 
 def main(fname, num_cols):
@@ -57,7 +56,6 @@ def main(fname, num_cols):
     fname = name of file that has the URIs.
     num_cols = number of columns to use when computing the entropy.
     '''
-    global results
     global matrix
 
     with open(fname, "r") as f:
@@ -65,13 +63,11 @@ def main(fname, num_cols):
         num_rows = len(matrix)
 
         start = time.time()
-        with ProcessPoolExecutor(max_workers = 8) as executor:
-            for (cmax, entropy) in executor.map(compute_entropy, range(1, num_cols + 1)):
-                print cmax, entropy
+        entropy_results = map(compute_entropy, range(1, num_cols + 1))
         end = time.time()
 
-        # for cmax in results:
-            # print cmax, results[cmax]
+        for (cmax, entropy) in entropy_results:
+            print cmax, entropy
 
         print "Total time: %f" % (end - start)
 
