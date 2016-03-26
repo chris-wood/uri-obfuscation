@@ -73,7 +73,8 @@ def processFile(filePath, nameLengthStat, compLengthStat, numOfCompsStat,
                 line.strip("\r").strip("\n")).split("/")
 
             if len(components) <= 20:
-                compsStat[len(components)] = compsStat[len(components)] + 1
+                compsStat[len(components) - 1] = compsStat[len(components) - 1] \
+                                                 + 1
 
             name = "".join(components)
 
