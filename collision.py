@@ -78,7 +78,7 @@ def usage():
     print "\t\toutput provided in <inputPath> directory."
     print "\t-c, --climit <componentsLimit>"
     print "\t\tis the maximum number of components in a URI."
-    print "\t--d, --dtype <dhtType>"
+    print "\t-d, --dtype <dhtType>"
     print "\t\tidentifies where the DHT is stored, either 'disk', 'db' or"
     print "\t\t'memory'. Default is 'memory'."
 
