@@ -74,6 +74,7 @@ def main(fname, num_cols):
             # print cmax, results[cmax]
 
         print "Total time: %f" % (end - start)
+        print >> sys.stderr, "Total time: %f" % (end - start)
 
 if __name__ == "__main__":
     main(sys.argv[1], int(sys.argv[2]))
