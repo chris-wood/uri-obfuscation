@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from urlparse import urlparse
 from pydht.local.disk import LocalDiskDHT
+from pydht.local.db import LocalDbDHT
 from pydht.local.memory import LocalMemoryDHT
 
 
@@ -78,8 +79,8 @@ def usage():
     print "\t-c, --climit <componentsLimit>"
     print "\t\tis the maximum number of components in a URI."
     print "\t--d, --dtype <dhtType>"
-    print "\t\tidentifies where the DHT is stored, either 'disk' or 'memory',"
-    print "\t\tdefault is 'memory'."
+    print "\t\tidentifies where the DHT is stored, either 'disk', 'db' or"
+    print "\t\t'memory'. Default is 'memory'."
 
 
 def main(argv):
@@ -139,7 +140,7 @@ def main(argv):
         usage()
         sys.exit(2)
 
-    if dhtType not in ("disk", "memory"):
+    if dhtType not in ("disk", "db", "memory"):
         print "DHT type must be either 'disk' or 'memory'."
         usage()
         sys.exit(2)
@@ -155,6 +156,10 @@ def main(argv):
                 dhts[key].append(LocalDiskDHT(obfuscators[key].size(),
                                               NUM_OF_HASHTABLES, DHT_PATH + "/" +
                                               key + "/" + str(i + 1)))
+            if dhtType == "db":
+                dhts[key].append(LocalDbDHT(obfuscators[key].size(),
+                                            NUM_OF_HASHTABLES, DHT_PATH + "/" +
+                                            key + "/" + str(i + 1)))
             elif dhtType == "memory":
                 dhts[key].append(LocalMemoryDHT(obfuscators[key].size(),
                                                 NUM_OF_HASHTABLES))
@@ -179,8 +184,14 @@ def main(argv):
         print("--- %s seconds ---" % (time.time() - start_time))
 
     # Cleaning up.
-    if dhtType == "disk":
+    print "Cleaning up..."
+    if dhtType in ("db"):
+        for key in hashUsed:
+            for i in range(0, COMPONENT_LIMIT):
+                dhts[key][i].close()
+    if dhtType in ("disk", "db"):
         shutil.rmtree(DHT_PATH, ignore_errors=True)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def processFile(filePath):
