@@ -63,6 +63,7 @@ labels = {
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
     print "                    -c <componentsLimit> -d <dhtType>"
+    print "                    -s >hashType>"
     print ""
     print "\t-i, --iPath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
@@ -81,6 +82,10 @@ def usage():
     print "\t-d, --dtype <dhtType>"
     print "\t\tidentifies where the DHT is stored, either 'disk', 'db' or"
     print "\t\t'memory'. Default is 'memory'."
+    print "\t-s, --htype <hashType>"
+    print "\t\tis the type of hash (obfuscation) function to use. Options:"
+    print "\t\t'CRC16', 'CRC32', 'MMH3', 'SIPHASH', 'MMH3_128', 'SHA1', or"
+    print "\t\t'ALL', default is 'ALL'."
 
 
 def main(argv):
@@ -94,10 +99,12 @@ def main(argv):
     outputType = "plot"
     plot = False
     dhtType = "memory"
+    hashType = "ALL"
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pc:d:", ["help", "ipath=",
-                                                       "otype=", "plot",
-                                                       "climit=", "dtype"])
+        opts, args = getopt.getopt(argv,"hi:o:pc:d:s:", ["help", "ipath=",
+                                                         "otype=", "plot",
+                                                         "climit=", "dtype",
+                                                         "htype="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -116,6 +123,8 @@ def main(argv):
             COMPONENT_LIMIT = int(arg)
         elif opt in ("-d", "--dtype"):
             dhtType = arg
+        elif opt in ("-s", "--htype"):
+            hashType = arg
         else:
             usage()
             sys.exit(2)
@@ -127,6 +136,11 @@ def main(argv):
 
     if outputType not in ("text", "plot"):
         print "Output type must be either 'text' or 'plot'."
+        usage()
+        sys.exit(2)
+
+    if not (hashType == "ALL" or hashType in hashUsed):
+        print "Hash type must one of the following '" + hashUsed + "'."
         usage()
         sys.exit(2)
 
@@ -151,18 +165,34 @@ def main(argv):
             shutil.rmtree(DHT_PATH, ignore_errors=True)
 
     for i in range(0, COMPONENT_LIMIT):
-        for key in hashUsed:
+        if hashType == "ALL":
+            for key in hashUsed:
+                if dhtType == "disk":
+                    dhts[key].append(LocalDiskDHT(obfuscators[key].size(),
+                                                  NUM_OF_HASHTABLES, DHT_PATH +
+                                                  "/" + key + "/" + str(i + 1)))
+                elif dhtType == "db":
+                    dhts[key].append(LocalDbDHT(obfuscators[key].size(),
+                                                NUM_OF_HASHTABLES, DHT_PATH +
+                                                "/" + key + "/" +
+                                                str(i + 1)))
+                elif dhtType == "memory":
+                    dhts[key].append(LocalMemoryDHT(obfuscators[key].size(),
+                                                    NUM_OF_HASHTABLES))
+        else:
             if dhtType == "disk":
-                dhts[key].append(LocalDiskDHT(obfuscators[key].size(),
-                                              NUM_OF_HASHTABLES, DHT_PATH + "/" +
-                                              key + "/" + str(i + 1)))
-            if dhtType == "db":
-                dhts[key].append(LocalDbDHT(obfuscators[key].size(),
-                                            NUM_OF_HASHTABLES, DHT_PATH + "/" +
-                                            key + "/" + str(i + 1)))
+                dhts[hashType].append(LocalDiskDHT(obfuscators[hashType].size(),
+                                                   NUM_OF_HASHTABLES, DHT_PATH +
+                                                   "/" + hashType + "/" +
+                                                   str(i + 1)))
+            elif dhtType == "db":
+                dhts[hashType].append(LocalDbDHT(obfuscators[hashType].size(),
+                                                 NUM_OF_HASHTABLES, DHT_PATH +
+                                                 "/" + hashType + "/" +
+                                                 str(i + 1)))
             elif dhtType == "memory":
-                dhts[key].append(LocalMemoryDHT(obfuscators[key].size(),
-                                                NUM_OF_HASHTABLES))
+                dhts[hashType].append(LocalMemoryDHT(obfuscators[hashType].
+                                                     size(), NUM_OF_HASHTABLES))
 
     # Initialize all counters to 0.
     counters = [0] * COMPONENT_LIMIT
@@ -170,17 +200,17 @@ def main(argv):
     print "Processing input files..."
     if plot == False:
         if os.path.isfile(inputPath):
-            processFile(inputPath)
+            processFile(inputPath, hashType)
         else:
             for filePath in [os.path.join(inputPath, f) for f in
                              os.listdir(inputPath) if
                              os.path.isfile(os.path.join(inputPath, f))]:
-                processFile(filePath)
+                processFile(filePath, hashType)
 
-        outputResults(outputType)
+        outputResults(outputType, hashType)
         print("--- %s seconds ---" % (time.time() - start_time))
     else:
-        plotResultsFromFile(inputPath)
+        plotResultsFromFile(inputPath, hashType)
         print("--- %s seconds ---" % (time.time() - start_time))
 
     # Cleaning up.
@@ -194,7 +224,7 @@ def main(argv):
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
-def processFile(filePath):
+def processFile(filePath, hashType):
     global start_time
     global counters
 
@@ -213,21 +243,27 @@ def processFile(filePath):
                 name = "/" + "/".join(components[:i + 1])
 
                 # Calculate hashes and insert them into the corresponding DHT.
-                for key in hashUsed:
-                    dhts[key][i].insert(obfuscators[key].obfuscateDecimal(name))
+                if hashType == "ALL":
+                    for key in hashUsed:
+                        dhts[key][i].insert(
+                            obfuscators[key].obfuscateDecimal(name))
+                else:
+                    dhts[hashType][i].insert(
+                        obfuscators[hashType].obfuscateDecimal(name))
+
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
-def outputResults(outputType):
-    collisions = processResults()
+def outputResults(outputType, hashType):
+    collisions = processResults(hashType)
 
     if outputType == "plot":
-        plotResults(collisions)
+        plotResults(collisions, hashType)
     elif outputType == "text":
-        saveResults(collisions)
+        saveResults(collisions, hashType)
 
 
-def processResults():
+def processResults(hashType):
     global start_time
     collisions = {}
 
@@ -237,23 +273,32 @@ def processResults():
         if counters[i] == 0:
             continue
 
-        for key in hashUsed:
-            if key not in collisions:
-                collisions[key] = []
+        if hashType == "ALL":
+            for key in hashUsed:
+                if key not in collisions:
+                    collisions[key] = []
 
-            collisions[key].append(dhts[key][i].calculateCollision())
+                collisions[key].append(dhts[key][i].calculateCollision())
+        else:
+            if hashType not in collisions:
+                collisions[hashType] = []
+
+            collisions[hashType].append(dhts[hashType][i].calculateCollision())
 
         print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return collisions
 
 
-def plotResults(collisions):
+def plotResults(collisions, hashType):
     print "Plotting collision results..."
     plt.hold(True)
 
-    for key in hashUsed:
-        plot(collisions[key], labels[key])
+    if hashType == "ALL":
+        for key in hashUsed:
+            plot(collisions[key], labels[key])
+    else:
+        plot(collisions[hashType], labels[hashType])
 
     finalizePlot()
 
@@ -277,28 +322,40 @@ def finalizePlot():
     plt.cla()
 
 
-def saveResults(collisions):
+def saveResults(collisions, hashType):
     if os.path.isdir("collision_output"):
-        shutil.rmtree("collision_output", ignore_errors=True)
-    os.makedirs("collision_output")
+        if hashType == "ALL":
+            shutil.rmtree("collision_output", ignore_errors=True)
+    else:
+        os.makedirs("collision_output")
 
     print "Saving results in text format..."
-    for key in hashUsed:
-        print "\t./collision_output/" + key + ".out..."
-        with open("collision_output/" + key + ".out", "w+") as outFile:
-            pickle.dump(collisions[key], outFile)
+    if hashType == "ALL":
+        for key in hashUsed:
+            print "\t./collision_output/" + key + ".out..."
+            with open("collision_output/" + key + ".out", "w+") as outFile:
+                pickle.dump(collisions[key], outFile)
+    else:
+        print "\t./collision_output/" + hashType + ".out..."
+        with open("collision_output/" + hashType + ".out", "w+") as outFile:
+            pickle.dump(collisions[hashType], outFile)
 
 
-def plotResultsFromFile(inputPath):
+def plotResultsFromFile(inputPath, hashType):
     collisions = {}
 
     print "Reading results stored in text format"
-    for key in hashUsed:
-        print "\t" + os.path.join(inputPath, key + ".out") + "..."
-        with open(os.path.join(inputPath, key + ".out"), "r") as inFile:
-            collisions[key] = pickle.load(inFile)
+    if hashType == "ALL":
+        for key in hashUsed:
+            print "\t" + os.path.join(inputPath, key + ".out") + "..."
+            with open(os.path.join(inputPath, key + ".out"), "r") as inFile:
+                collisions[key] = pickle.load(inFile)
+    else:
+        print "\t" + os.path.join(inputPath, hashType + ".out") + "..."
+        with open(os.path.join(inputPath, hashType + ".out"), "r") as inFile:
+            collisions[hashType] = pickle.load(inFile)
 
-    plotResults(collisions)
+    plotResults(collisions, hashType)
 
 
 def strip_scheme(url):
