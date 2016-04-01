@@ -10,6 +10,7 @@ import statistics as stat
 from scipy.interpolate import UnivariateSpline
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from urlparse import urlparse
 
 
 # LENGTH_LIMIT is from here: http://www.boutell.com/newfaq/misc/urllength.html.
@@ -159,8 +160,7 @@ def processFile(filePath):
             if len(line) > LENGTH_LIMIT:
                 continue
 
-            name = line.strip("http://").strip("https://").strip(
-                "ftp://").split("/")
+            name = strip_scheme(line.strip("\r").strip("\n")).split("/")
 
             # Skip all URIs with a lot of name components, this gets rid of
             # outliers.
@@ -608,6 +608,12 @@ def calculateYerr():
     max_yerr.append(max(hash160))
 
     return (min_yerr, max_yerr)
+
+
+def strip_scheme(url):
+    parsed = urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
 
 
 if __name__ == "__main__":
