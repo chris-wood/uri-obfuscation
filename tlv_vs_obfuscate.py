@@ -318,7 +318,7 @@ def plotPDF():
 def finalizePlotPDF():
     # Set grid, axis labels, and legend.
     plt.grid(True)
-    plt.xlabel("Name length (bytes)")
+    plt.xlabel("Average name length (bytes)")
     plt.ylabel("Probability density function")
     plt.xlim([0, 500])
     plt.legend()
@@ -344,7 +344,7 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
 
         # Add some text for labels, title and axes ticks.
         ax.grid(True)
-        ax.set_ylabel('Name length (bytes)')
+        ax.set_ylabel('Average name length (bytes)')
         ax.set_xticks(ind + (width * 1.5))
         ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
                             '128-bit', '160-bit'))
@@ -365,7 +365,7 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
 
         # Add some text for labels, title and axes ticks.
         ax.grid(True)
-        ax.set_ylabel('Name length (bytes)')
+        ax.set_ylabel('Average name length (bytes)')
         ax.set_xticks(ind + (width * 1.5))
         ax.set_xticklabels(('TLV', '16-bit', '32-bit', '48-bit', '64-bit',
                             '128-bit', '160-bit'))
@@ -387,7 +387,7 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
 
     # Add some text for labels, title and axes ticks.
     ax.grid(True)
-    ax.set_ylabel('Name length increment (%)')
+    ax.set_ylabel('Average name length increment (%)')
     ax.set_xticks(ind + (width * 1.5))
     ax.set_xticklabels(('16-bit', '32-bit', '48-bit', '64-bit', '128-bit',
                         '160-bit'))
