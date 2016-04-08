@@ -63,7 +63,7 @@ labels = {
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
     print "                    -c <componentsLimit> -d <dhtType>"
-    print "                    -s >hashType>"
+    print "                    -s <hashType>"
     print ""
     print "\t-i, --iPath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
@@ -140,7 +140,7 @@ def main(argv):
         sys.exit(2)
 
     if not (hashType == "ALL" or hashType in hashUsed):
-        print "Hash type must one of the following '" + hashUsed + "'."
+        print "Hash type must be one of the following '" + hashUsed + "'."
         usage()
         sys.exit(2)
 
