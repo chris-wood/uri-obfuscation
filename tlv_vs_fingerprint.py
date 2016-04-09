@@ -208,7 +208,8 @@ def plotResults(meanOfRatios, ratioOfMeans):
     ax.set_xticks(ind + width)
     ax.set_xticklabels(('256-bit', '384-bit', '512-bit'))
     ax.set_xlim([-0.2, 2.6])
-    ax.legend((rects1[0], rects2[0]), ('Average of ratios', 'Ratio of averages'),
+    ax.legend((rects1[0], rects2[0]),
+              ('Average of overheads', 'Overhead compared to average name'),
               loc=2)
 
     autoLabel(ax, rects1)
