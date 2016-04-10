@@ -61,7 +61,7 @@ def main(argv):
         convertFile(inputPath, outputPath)
     else:
         for filePath in [os.path.join(inputPath, f) for f in
-                         os.listdir(inputPath) if
+                         sorted(os.listdir(inputPath)) if
                          os.path.isfile(os.path.join(inputPath, f))]:
             convertFile(filePath, outputPath)
 
