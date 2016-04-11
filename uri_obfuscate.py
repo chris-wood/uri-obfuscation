@@ -98,7 +98,8 @@ def main(argv):
         for fileName in [f for f in
                          sorted(os.listdir(inputPath)) if
                          os.path.isfile(os.path.join(inputPath, f))]:
-            processFile(os.path.join(inputPath, f), outputPath, sizes, fileName)
+            processFile(os.path.join(inputPath, fileName), outputPath, sizes,
+                        fileName)
 
 
 def processFile(filePath, outputPath, sizes, fileName):
