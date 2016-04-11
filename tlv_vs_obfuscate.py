@@ -140,7 +140,7 @@ def main(argv):
             print("--- %s seconds ---" % (time.time() - start_time))
         else:
             for filePath in [os.path.join(inputPath, f) for f in
-                             os.listdir(inputPath) if
+                             sorted(os.listdir(inputPath)) if
                              os.path.isfile(os.path.join(inputPath, f))]:
                 processFile(filePath)
             print("--- %s seconds ---" % (time.time() - start_time))

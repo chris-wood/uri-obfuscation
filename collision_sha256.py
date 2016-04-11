@@ -39,9 +39,9 @@ obfuscator = obfuscate.ObfuscatorSHA256()
 def usage():
     print "python collision.py -i <inputPath> -o <outputType> -p"
     print "                    -c <componentsLimit> -d <dhtType>"
-    print "                    -s <hashSize>"
+    print "                    -s <hashSize> -t <dataType>"
     print ""
-    print "\t-i, --iPath <inputPath>"
+    print "\t-i, --ipath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
     print "\t\tdirectory with a lot of files containing URI lists. If -p is"
     print "\t\tprovided, <inputPath> is the path of the output files to be"
@@ -55,13 +55,16 @@ def usage():
     print "\t\toutput provided in <inputPath> directory."
     print "\t-c, --climit <componentsLimit>"
     print "\t\tis the maximum number of components in a URI."
-    print "\t-d, --dtype <dhtType>"
+    print "\t-d, --dhttype <dhtType>"
     print "\t\tidentifies where the DHT is stored, either 'disk', 'db' or"
     print "\t\t'memory'. Default is 'memory'."
-    print "\t-s, --htype <hashSize>"
+    print "\t-s, --hsize <hashSize>"
     print "\t\tis the size of the hash (obfuscation) function to use. Options:"
     print "\t\t'16', '32', '48', '64', '128', '160', or a comma separate list of"
     print "\t\tany of the previous values."
+    print "\t-t, --dtype <dataType>"
+    print "\t\tis the data type, either 'raw' or 'obfuscated'. The second"
+    print "\t\tassumes that the data is already obfuscated into network names."
 
 
 def main(argv):
@@ -76,11 +79,12 @@ def main(argv):
     plot = False
     dhtType = "memory"
     hashSize = ""
+    dataType = ""
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pc:d:s:", ["help", "ipath=",
-                                                         "otype=", "plot",
-                                                         "climit=", "dtype",
-                                                         "htype="])
+        opts, args = getopt.getopt(argv,"hi:o:pc:d:s:t:", ["help", "ipath=",
+                                                           "otype=", "plot",
+                                                           "climit=", "dhttype",
+                                                           "hsize=", "dtype="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -97,10 +101,12 @@ def main(argv):
             plot = True
         elif opt in ("-c", "--climit"):
             COMPONENT_LIMIT = int(arg)
-        elif opt in ("-d", "--dtype"):
+        elif opt in ("-d", "--dhttype"):
             dhtType = arg
-        elif opt in ("-s", "--htype"):
+        elif opt in ("-s", "--hsize"):
             hashSize = arg
+        elif opt in ("-t", "--dtype"):
+            dataType = arg
         else:
             usage()
             sys.exit(2)
@@ -115,34 +121,43 @@ def main(argv):
         usage()
         sys.exit(2)
 
+    if dataType == "":
+        print "Missing data type."
+        usage()
+        sys.exit(2)
+
     if outputType not in ("text", "plot"):
         print "Output type must be either 'text' or 'plot'."
-        usage()
         sys.exit(2)
 
     if outputType == "text" and plot == True:
         print "Output type 'plot' cannot be use with -p."
-        usage()
         sys.exit(2)
 
     if plot == True and os.path.isfile(inputPath):
         print "If -p is used, <inputPath> must be a directory."
-        usage()
         sys.exit(2)
 
     if dhtType not in ("disk", "db", "memory"):
-        print "DHT type must be either 'disk' or 'memory'."
-        usage()
+        print "DHT type must be either 'disk', 'db', or 'memory'."
+        sys.exit(2)
+
+    if dataType not in ("raw", "obfuscated"):
+        print "Data type must be either 'raw' or 'obfuscated'."
         sys.exit(2)
 
     sizes = []
     for size in hashSize.split(","):
         if not size in sizeUsed:
             print "Unknown hash size: '" + size + "'."
-            usage()
             sys.exit(2)
         else:
             sizes.append(size)
+
+    if dataType == "obfuscated" and len(sizes) > 1:
+        print "When 'obfuscated' data type is used, only one size can be " \
+            "processed at a time."
+        sys.exit(2)
 
     # Prepare DHTs.
     if dhtType == "disk":
@@ -168,12 +183,12 @@ def main(argv):
     print "Processing input files..."
     if plot == False:
         if os.path.isfile(inputPath):
-            processFile(inputPath, sizes)
+            processFile(inputPath, sizes, dataType)
         else:
             for filePath in [os.path.join(inputPath, f) for f in
                              sorted(os.listdir(inputPath)) if
                              os.path.isfile(os.path.join(inputPath, f))]:
-                processFile(filePath, sizes)
+                processFile(filePath, sizes, dataType)
 
         outputResults(outputType, sizes)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -192,29 +207,41 @@ def main(argv):
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
-def processFile(filePath, sizes):
+def processFile(filePath, sizes, dataType):
     global start_time
     global counters
 
     print "\t'" + filePath + "'..."
     with open(filePath, "r") as inFile:
         for line in inFile:
-            for i in range(0, COMPONENT_LIMIT):
-                components = strip_scheme(
-                    line.strip("\r").strip("\n")).split("/")
+            if dataType == "raw":
+                for i in range(0, COMPONENT_LIMIT):
+                    components = strip_scheme(
+                        line.strip("\r").strip("\n")).split("/")
 
-                if len(components) < i + 1:
-                    continue
+                    if len(components) < i + 1:
+                        continue
 
-                counters[i] = counters[i] + 1
+                    counters[i] = counters[i] + 1
 
-                name = "/" + "/".join(components[:i + 1])
+                    name = "/" + "/".join(components[:i + 1])
 
-                # Calculate hashes and insert them into the corresponding DHT.
-                hashValue = obfuscator.obfuscate(name)
-                for size in sizes:
-                    dhts[size][i].insert(
-                        int(hashValue[:((int(size) / 8) * 2)], 16))
+                    # Calculate hashes and insert them into the corresponding
+                    # DHT.
+                    hashValue = obfuscator.obfuscate(name)
+                    for size in sizes:
+                        dhts[size][i].insert(
+                            int(hashValue[:((int(size) / 8) * 2)], 16))
+            else:
+                components = line.strip("/").strip("\r").strip("\n").split("/")
+                for i in range(0, COMPONENT_LIMIT):
+                    if len(components) < i + 1:
+                        continue
+
+                    counters[i] = counters[i] + 1
+
+                    dhts[sizes[0]][i].insert(
+                        int(components[i][:((int(sizes[0]) / 8) * 2)], 16))
 
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
