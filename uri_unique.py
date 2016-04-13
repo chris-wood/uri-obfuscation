@@ -102,9 +102,16 @@ def main(argv):
 def processFile(filePath, minComponent, maxComponent):
     global start_time
 
-    print "\t'" + filePath + "'..."
+    fileSize = os.path.getsize(filePath)
+    totalBytesRead = 0
+
+    print "\t'" + filePath + "'... 0%\r",
     with open(filePath, "r") as inFile:
         for line in inFile:
+            totalBytesRead = totalBytesRead + len(line)
+            print "\t'" + filePath + "'... " + \
+                str(round((float(totalBytesRead) / fileSize) * 100, 4)) + "%\r",
+
             strComponents = strip_scheme(
                 line.strip("\r").strip("\n")).split("/")
 
@@ -117,6 +124,7 @@ def processFile(filePath, minComponent, maxComponent):
 
                 components[i - 1].add("/" + "/".join(strComponents[:i]))
 
+    print "\t'" + filePath + "'... 100.0000%"
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
