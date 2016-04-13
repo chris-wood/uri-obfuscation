@@ -122,7 +122,7 @@ def processFile(filePath, minComponent, maxComponent):
                 totalBytesRead = totalBytesRead + len(line)
                 progress = "{:.4f}".format(round(
                     (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
-                print progress
+                print progress,
                 previousProgress = len(progress)
 
             # Do the actual work.
