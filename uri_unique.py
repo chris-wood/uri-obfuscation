@@ -102,16 +102,26 @@ def main(argv):
 def processFile(filePath, minComponent, maxComponent):
     global start_time
 
+    print "\t'" + filePath + "'... ",
+
     fileSize = os.path.getsize(filePath)
     totalBytesRead = 0
 
-    print "\t'" + filePath + "'... 0%\r",
+    progress = "{:.4f}".format(0).zfill(8)
+    print progress,
+    previousProgress = len(progress)
     with open(filePath, "r") as inFile:
         for line in inFile:
+            # Print the progress.
+            back="\b" * (previousProgress + 2)
+            print back,
             totalBytesRead = totalBytesRead + len(line)
-            print "\t'" + filePath + "'... " + \
-                str(round((float(totalBytesRead) / fileSize) * 100, 4)) + "%\r",
+            progress = "{:.4f}".format(round(
+                (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
+            print progress,
+            previousProgress = len(progress)
 
+            # Do the actual work.
             strComponents = strip_scheme(
                 line.strip("\r").strip("\n")).split("/")
 
@@ -124,7 +134,11 @@ def processFile(filePath, minComponent, maxComponent):
 
                 components[i - 1].add("/" + "/".join(strComponents[:i]))
 
-    print "\t'" + filePath + "'... 100.0000%"
+    back="\b" * (previousProgress + 2)
+    print back,
+    progress = "{:.4f}".format(100).zfill(8)
+    print progress
+    previousProgress = len(progress)
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
