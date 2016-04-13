@@ -110,16 +110,20 @@ def processFile(filePath, minComponent, maxComponent):
     progress = "{:.4f}".format(0).zfill(8)
     print progress,
     previousProgress = len(progress)
+    count = 0
     with open(filePath, "r") as inFile:
         for line in inFile:
+            count = count + 1
+
             # Print the progress.
-            back="\b" * (previousProgress + 2)
-            print back,
-            totalBytesRead = totalBytesRead + len(line)
-            progress = "{:.4f}".format(round(
-                (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
-            print progress,
-            previousProgress = len(progress)
+            if count % 100 == 0:
+                back="\b" * (previousProgress + 2)
+                print back,
+                totalBytesRead = totalBytesRead + len(line)
+                progress = "{:.4f}".format(round(
+                    (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
+                print progress
+                previousProgress = len(progress)
 
             # Do the actual work.
             strComponents = strip_scheme(
