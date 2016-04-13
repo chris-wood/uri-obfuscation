@@ -15,7 +15,7 @@ components = []
 
 def usage():
     print "python uri_unique.py -i <inputPath> -o <outputPath>"
-    print "                     -s <componentsRange>"
+    print "                     -c <componentsRange>"
     print ""
     print "\t-i, --ipath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
