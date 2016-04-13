@@ -41,6 +41,11 @@ def compute_entropy(cmax):
     for row in matrix:
         if len(row) >= cmax:
             rows.append(row)
+        else:
+            diff = len(row - cmax)
+            rowc = row[:]
+            for i in range(diff):
+                rowc.append("_") # append "empty" component to the name as padding
 
     keys = map(lambda r : array_to_key(r, cmax), rows)
     group, count = group_counts(keys)
