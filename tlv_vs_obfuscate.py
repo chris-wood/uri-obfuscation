@@ -176,27 +176,27 @@ def processFile(filePath):
             tlv.append(tlvEncodingSize)
 
             # 16-bit encoding size.
-            hash16EncodingSize = (HASH16SIZE + 2) * len(name)
+            hash16EncodingSize = (HASH16SIZE * len(name)) + 4
             hash16.append(hash16EncodingSize)
 
             # 32-bit encoding size.
-            hash32EncodingSize = (HASH32SIZE + 2) * len(name)
+            hash32EncodingSize = (HASH32SIZE * len(name)) + 4
             hash32.append(hash32EncodingSize)
 
             # 48-bit encoding size.
-            hash48EncodingSize = (HASH48SIZE + 2) * len(name)
+            hash48EncodingSize = (HASH48SIZE * len(name)) + 4
             hash48.append(hash48EncodingSize)
 
             # 64-bit encoding size.
-            hash64EncodingSize = (HASH64SIZE + 2) * len(name)
+            hash64EncodingSize = (HASH64SIZE * len(name)) + 4
             hash64.append(hash64EncodingSize)
 
             # 128-bit encoding size.
-            hash128EncodingSize = (HASH128SIZE + 2) * len(name)
+            hash128EncodingSize = (HASH128SIZE * len(name)) + 4
             hash128.append(hash128EncodingSize)
 
             # 160-bit encoding size.
-            hash160EncodingSize = (HASH160SIZE + 2) * len(name)
+            hash160EncodingSize = (HASH160SIZE * len(name)) + 4
             hash160.append(hash160EncodingSize)
 
 
