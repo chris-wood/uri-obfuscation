@@ -135,27 +135,46 @@ def main(argv):
         sys.exit(2)
 
     if plot == False:
+        print "Processing input files..."
         if os.path.isfile(inputPath):
             processFile(inputPath)
-            print("--- %s seconds ---" % (time.time() - start_time))
         else:
             for filePath in [os.path.join(inputPath, f) for f in
                              sorted(os.listdir(inputPath)) if
                              os.path.isfile(os.path.join(inputPath, f))]:
                 processFile(filePath)
-            print("--- %s seconds ---" % (time.time() - start_time))
 
         outputResults(outputType, verbose, errorType)
-        print("--- %s seconds ---" % (time.time() - start_time))
     else:
         plotResultsFromFile(inputPath, verbose, errorType)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def processFile(filePath):
-    print "Processing '" + filePath + "'..."
+    global start_time
+
+    print "\t'" + filePath + "'... ",
+
+    fileSize = os.path.getsize(filePath)
+    totalBytesRead = 0
+
+    progress = "{:.4f}".format(0).zfill(8)
+    print progress,
+    previousProgress = len(progress)
+    count = 0
     with open(filePath, "r") as inFile:
         for line in inFile:
+            count = count + 1
+            totalBytesRead = totalBytesRead + len(line)
+
+            # Print the progress.
+            if count % 100 == 0:
+                back="\b" * (previousProgress + 2)
+                print back,
+                progress = "{:.4f}".format(round(
+                    (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
+                print progress,
+                previousProgress = len(progress)
+
             # Skip all long URIs, this gets rid of outliers.
             if len(line) > LENGTH_LIMIT:
                 continue
@@ -199,8 +218,17 @@ def processFile(filePath):
             hash160EncodingSize = (HASH160SIZE * len(name)) + 4
             hash160.append(hash160EncodingSize)
 
+    back="\b" * (previousProgress + 2)
+    print back,
+    progress = "{:.4f}".format(100).zfill(8)
+    print progress
+    previousProgress = len(progress)
+    print("\t--- %s seconds ---" % (time.time() - start_time))
+
 
 def outputResults(outputType, verbose, errorType):
+    global start_time
+
     if outputType == "plot":
         if verbose:
             plotPDF()
@@ -208,6 +236,8 @@ def outputResults(outputType, verbose, errorType):
         plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
     elif outputType == "text":
         saveResults(verbose, errorType)
+
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def plotResultsFromFile(inputPath, verbose, errorType):
@@ -298,6 +328,7 @@ def plotResultsFromFile(inputPath, verbose, errorType):
             max_yerr.extend(tmp)
 
     plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def plotPDF():
