@@ -26,12 +26,12 @@ DHT_PATH = "dht_tmp/"
 counters = []
 sizeUsed = ["16", "32", "48", "64", "128", "160"]
 dhts = {
-    "16"    : [],
-    "32"    : [],
-    "48"     : [],
+    "16"  : [],
+    "32"  : [],
+    "48"  : [],
     "64"  : [],
     "128" : [],
-    "160"     : []
+    "160" : []
 }
 obfuscator = obfuscate.ObfuscatorSHA256()
 
@@ -185,10 +185,9 @@ def main(argv):
         if os.path.isfile(inputPath):
             processFile(inputPath, sizes, dataType)
         else:
-            for filePath in [os.path.join(inputPath, f) for f in
-                             sorted(os.listdir(inputPath)) if
-                             os.path.isfile(os.path.join(inputPath, f))]:
-                processFile(filePath, sizes, dataType)
+            for i in range(0, COMPONENT_LIMIT):
+                processFile(os.path.join(inputPath, str(i + 1) + "-component"),
+                            sizes, dataType, i)
 
         outputResults(outputType, sizes)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -207,41 +206,24 @@ def main(argv):
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
-def processFile(filePath, sizes, dataType):
+def processFile(filePath, sizes, dataType, compIndex):
     global start_time
     global counters
 
     print "\t'" + filePath + "'..."
     with open(filePath, "r") as inFile:
         for line in inFile:
+            counters[compIndex] = counters[compIndex] + 1
+
             if dataType == "raw":
-                for i in range(0, COMPONENT_LIMIT):
-                    components = strip_scheme(
-                        line.strip("\r").strip("\n")).split("/")
-
-                    if len(components) < i + 1:
-                        continue
-
-                    counters[i] = counters[i] + 1
-
-                    name = "/" + "/".join(components[:i + 1])
-
-                    # Calculate hashes and insert them into the corresponding
-                    # DHT.
-                    hashValue = obfuscator.obfuscate(name)
-                    for size in sizes:
-                        dhts[size][i].insert(
-                            int(hashValue[:((int(size) / 8) * 2)], 16))
+                # Calculate hashes and insert them into the corresponding
+                # DHT.
+                hashValue = obfuscator.obfuscate(line)
+                for size in sizes:
+                    dhts[size][compIndex].insert(
+                        int(hashValue[:((int(size) / 8) * 2)], 16))
             else:
-                components = line.strip("/").strip("\r").strip("\n").split("/")
-                for i in range(0, COMPONENT_LIMIT):
-                    if len(components) < i + 1:
-                        continue
-
-                    counters[i] = counters[i] + 1
-
-                    dhts[sizes[0]][i].insert(
-                        int(components[i][:((int(sizes[0]) / 8) * 2)], 16))
+                dhts[sizes[0]][compIndex].insert(int(line, 16))
 
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
