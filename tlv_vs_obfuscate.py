@@ -428,7 +428,7 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
     else:
         ax.set_ylim([limits[2], limits[3] + 50])
     sign = [-1 if x < 0 else 1 for x in meanDiff]
-    autoLabel(ax, rects, 20, 3, 0, sign)
+    autoLabel(ax, rects, 23, 3, 0, sign)
 
     # Save to file.
     pp = PdfPages('tlv_vs_obfuscate_NameLengthsDiff.pdf')
