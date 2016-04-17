@@ -210,9 +210,29 @@ def processFile(filePath, sizes, dataType, compIndex):
     global start_time
     global counters
 
-    print "\t'" + filePath + "'..."
+    print "\t'" + filePath + "'...",
+
+    fileSize = os.path.getsize(filePath)
+    totalBytesRead = 0
+
+    progress = "{:.4f}".format(0).zfill(8)
+    print progress,
+    previousProgress = len(progress)
+    count = 0
     with open(filePath, "r") as inFile:
         for line in inFile:
+            count = count + 1
+            totalBytesRead = totalBytesRead + len(line)
+
+            # Print the progress.
+            if count % 100 == 0:
+                back="\b" * (previousProgress + 2)
+                print back,
+                progress = "{:.4f}".format(round(
+                    (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
+                print progress,
+                previousProgress = len(progress)
+
             counters[compIndex] = counters[compIndex] + 1
 
             if dataType == "raw":
@@ -225,6 +245,11 @@ def processFile(filePath, sizes, dataType, compIndex):
             else:
                 dhts[sizes[0]][compIndex].insert(int(line, 16))
 
+    back="\b" * (previousProgress + 2)
+    print back,
+    progress = "{:.4f}".format(100).zfill(8)
+    print progress
+    previousProgress = len(progress)
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
