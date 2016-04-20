@@ -42,10 +42,9 @@ def usage():
     print "                    -s <hashSize> -t <dataType>"
     print ""
     print "\t-i, --ipath <inputPath>"
-    print "\t\tis the path of a file containing the URI list, or a path to a"
-    print "\t\tdirectory with a lot of files containing URI lists. If -p is"
-    print "\t\tprovided, <inputPath> is the path of the output files to be"
-    print "\t\tplotted."
+    print "\t\tis the path of a directory containing several files each"
+    print "\t\tcontaining name prefixes of a specific length (in terms of number"
+    print "\t\tof components)."
     print "\t-o, --otype <outputType>"
     print "\t\tis optional and it is either 'text' or 'plot'. 'text' outputs the"
     print "\t\tgraphs in text format to be plotted later, while 'plot' (default)"
@@ -116,6 +115,11 @@ def main(argv):
         usage()
         sys.exit(2)
 
+    if os.path.isfile(inputPath):
+        print "Input path must be a directory."
+        usage()
+        sys.exit(2)
+
     if hashSize == "":
         print "Missing hash size."
         usage()
@@ -132,10 +136,6 @@ def main(argv):
 
     if outputType == "text" and plot == True:
         print "Output type 'plot' cannot be use with -p."
-        sys.exit(2)
-
-    if plot == True and os.path.isfile(inputPath):
-        print "If -p is used, <inputPath> must be a directory."
         sys.exit(2)
 
     if dhtType not in ("disk", "db", "memory"):
@@ -182,12 +182,9 @@ def main(argv):
 
     print "Processing input files..."
     if plot == False:
-        if os.path.isfile(inputPath):
-            processFile(inputPath, sizes, dataType)
-        else:
-            for i in range(0, COMPONENT_LIMIT):
-                processFile(os.path.join(inputPath, str(i + 1) + "-component"),
-                            sizes, dataType, i)
+        for i in range(0, COMPONENT_LIMIT):
+            processFile(os.path.join(inputPath, str(i + 1) + "-component"),
+                        sizes, dataType, i)
 
         outputResults(outputType, sizes)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -276,13 +273,16 @@ def processResults(sizes):
             if size not in collisions:
                 collisions[size] = []
 
-            collisions[size].append(dhts[size][i].calculateCollision())
+            hashCount, valueCount, totalCount = dhts[size][i].countCollision()
+            collisions[size].append(str(hashCount) + "," + str(valueCount) +
+                                    "," + str(totalCount))
 
         print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return collisions
 
 
+# TODO(cesar): fix this function based on the new collisions structure.
 def plotResults(collisions, sizes):
     print "Plotting collision results..."
     plt.hold(True)
