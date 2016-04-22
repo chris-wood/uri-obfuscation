@@ -35,7 +35,7 @@ def main(argv):
 
     inputPath = ""
     outputPath = ""
-    componentsRange = "1,20"
+    componentsRange = "1-20"
     try:
         opts, args = getopt.getopt(argv,"hi:o:pc:d:s:", ["help", "ipath=",
                                                          "opath=", "crange="])
