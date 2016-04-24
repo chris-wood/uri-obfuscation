@@ -13,12 +13,9 @@ COMPONENTS_LIMIT = 20
 def usage():
     print "python collision.py <inputPath>"
     print ""
-    print "\t-i, --iPath <inputPath>"
+    print "\t<inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
     print "\t\tdirectory with a lot of files containing URI lists."
-    print "\t-s, --separator <separator>"
-    print "\t\tis the separator character that will be used in the output file."
-    print "\t\tThe default is ',' similar to CSV files."
 
 
 def main(argv):
