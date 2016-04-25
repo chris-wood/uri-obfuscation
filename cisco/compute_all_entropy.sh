@@ -1,6 +1,7 @@
 #!/bin/bash
 
-ALGS=( CRC16 CRC32 MMH3 SHA256 AESGCM AESCBC SIPHASH )
+#ALGS=( CRC16 CRC32 MMH3 SHA256 AESGCM AESCBC SIPHASH )
+ALGS=( ) # SIPHASH AESCBC SHA256 )
 MAX_INDEX=22
 URI_FILE=$1
 
@@ -39,3 +40,13 @@ do
         index=$[$index+1]
     done
 done
+
+URI_FILE=$1
+MAX_INDEX=22
+OUT=${URI_FILE}
+DATA_OUT=${OUT}_plain_21
+#python ../parallel_entropy.py ${OUT} ${MAX_INDEX} > ${DATA_OUT}.out
+
+OUT=${URI_FILE}
+DATA_OUT=${OUT}_plain_flatten_21
+python ../parallel_entropy.py ${OUT} ${MAX_INDEX}  > ${DATA_OUT}.out
