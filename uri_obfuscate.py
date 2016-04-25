@@ -14,8 +14,8 @@ obfuscator = obfuscate.ObfuscatorSHA256()
 
 
 def usage():
-    print "python collision.py -i <inputPath> -o <outputPath>"
-    print "                    -s <hashSize>"
+    print "python uri_obfuscate.py -i <inputPath> -o <outputPath>"
+    print "                        -s <hashSize>"
     print ""
     print "\t-i, --ipath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"

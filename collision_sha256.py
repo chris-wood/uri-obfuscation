@@ -26,12 +26,12 @@ DHT_PATH = "dht_tmp/"
 counters = []
 sizeUsed = ["16", "32", "48", "64", "128", "160"]
 dhts = {
-    "16"    : [],
-    "32"    : [],
-    "48"     : [],
+    "16"  : [],
+    "32"  : [],
+    "48"  : [],
     "64"  : [],
     "128" : [],
-    "160"     : []
+    "160" : []
 }
 obfuscator = obfuscate.ObfuscatorSHA256()
 
@@ -42,10 +42,9 @@ def usage():
     print "                    -s <hashSize> -t <dataType>"
     print ""
     print "\t-i, --ipath <inputPath>"
-    print "\t\tis the path of a file containing the URI list, or a path to a"
-    print "\t\tdirectory with a lot of files containing URI lists. If -p is"
-    print "\t\tprovided, <inputPath> is the path of the output files to be"
-    print "\t\tplotted."
+    print "\t\tis the path of a directory containing several files each"
+    print "\t\tcontaining name prefixes of a specific length (in terms of number"
+    print "\t\tof components)."
     print "\t-o, --otype <outputType>"
     print "\t\tis optional and it is either 'text' or 'plot'. 'text' outputs the"
     print "\t\tgraphs in text format to be plotted later, while 'plot' (default)"
@@ -116,6 +115,11 @@ def main(argv):
         usage()
         sys.exit(2)
 
+    if os.path.isfile(inputPath):
+        print "Input path must be a directory."
+        usage()
+        sys.exit(2)
+
     if hashSize == "":
         print "Missing hash size."
         usage()
@@ -132,10 +136,6 @@ def main(argv):
 
     if outputType == "text" and plot == True:
         print "Output type 'plot' cannot be use with -p."
-        sys.exit(2)
-
-    if plot == True and os.path.isfile(inputPath):
-        print "If -p is used, <inputPath> must be a directory."
         sys.exit(2)
 
     if dhtType not in ("disk", "db", "memory"):
@@ -182,13 +182,9 @@ def main(argv):
 
     print "Processing input files..."
     if plot == False:
-        if os.path.isfile(inputPath):
-            processFile(inputPath, sizes, dataType)
-        else:
-            for filePath in [os.path.join(inputPath, f) for f in
-                             sorted(os.listdir(inputPath)) if
-                             os.path.isfile(os.path.join(inputPath, f))]:
-                processFile(filePath, sizes, dataType)
+        for i in range(0, COMPONENT_LIMIT):
+            processFile(os.path.join(inputPath, str(i + 1) + "-component"),
+                        sizes, dataType, i)
 
         outputResults(outputType, sizes)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -207,42 +203,50 @@ def main(argv):
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
-def processFile(filePath, sizes, dataType):
+def processFile(filePath, sizes, dataType, compIndex):
     global start_time
     global counters
 
-    print "\t'" + filePath + "'..."
+    print "\t'" + filePath + "'...",
+
+    fileSize = os.path.getsize(filePath)
+    totalBytesRead = 0
+
+    progress = "{:.4f}".format(0).zfill(8)
+    print progress,
+    previousProgress = len(progress)
+    count = 0
     with open(filePath, "r") as inFile:
         for line in inFile:
+            count = count + 1
+            totalBytesRead = totalBytesRead + len(line)
+
+            # Print the progress.
+            if count % 100 == 0:
+                back="\b" * (previousProgress + 2)
+                print back,
+                progress = "{:.4f}".format(round(
+                    (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
+                print progress,
+                previousProgress = len(progress)
+
+            counters[compIndex] = counters[compIndex] + 1
+
             if dataType == "raw":
-                for i in range(0, COMPONENT_LIMIT):
-                    components = strip_scheme(
-                        line.strip("\r").strip("\n")).split("/")
-
-                    if len(components) < i + 1:
-                        continue
-
-                    counters[i] = counters[i] + 1
-
-                    name = "/" + "/".join(components[:i + 1])
-
-                    # Calculate hashes and insert them into the corresponding
-                    # DHT.
-                    hashValue = obfuscator.obfuscate(name)
-                    for size in sizes:
-                        dhts[size][i].insert(
-                            int(hashValue[:((int(size) / 8) * 2)], 16))
+                # Calculate hashes and insert them into the corresponding
+                # DHT.
+                hashValue = obfuscator.obfuscate(line)
+                for size in sizes:
+                    dhts[size][compIndex].insert(
+                        int(hashValue[:((int(size) / 8) * 2)], 16))
             else:
-                components = line.strip("/").strip("\r").strip("\n").split("/")
-                for i in range(0, COMPONENT_LIMIT):
-                    if len(components) < i + 1:
-                        continue
+                dhts[sizes[0]][compIndex].insert(int(line, 16))
 
-                    counters[i] = counters[i] + 1
-
-                    dhts[sizes[0]][i].insert(
-                        int(components[i][:((int(sizes[0]) / 8) * 2)], 16))
-
+    back="\b" * (previousProgress + 2)
+    print back,
+    progress = "{:.4f}".format(100).zfill(8)
+    print progress
+    previousProgress = len(progress)
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
@@ -269,13 +273,16 @@ def processResults(sizes):
             if size not in collisions:
                 collisions[size] = []
 
-            collisions[size].append(dhts[size][i].calculateCollision())
+            hashCount, valueCount, totalCount = dhts[size][i].countCollision()
+            collisions[size].append(str(hashCount) + "," + str(valueCount) +
+                                    "," + str(totalCount))
 
         print("\t--- %s seconds ---" % (time.time() - start_time))
 
     return collisions
 
 
+# TODO(cesar): fix this function based on the new collisions structure.
 def plotResults(collisions, sizes):
     print "Plotting collision results..."
     plt.hold(True)
