@@ -38,31 +38,31 @@ def usage():
     print "                           -o <errorType> -l <lengthLimit>"
     print "                           -c <componentsLimit>"
     print ""
-    print "\t-i <inputPath>"
+    print "\t-i, --ipath <inputPath>"
     print "\t\tis the path of a file containing the URI list, or a path to a"
     print "\t\tdirectory with a lot of files containing URI lists. If -p is"
     print "\t\tprovided, <inputPath> is the path of the output files to be"
     print "\t\tplotted."
-    print "\t-o <outputType>"
+    print "\t-o, --otype <outputType>"
     print "\t\tis optional and it is either 'text' or 'plot'. 'text' outputs the"
     print "\t\tgraphs in text format to be plotted later, while 'plot' (default)"
     print "\t\tplots the result."
-    print "\t-p"
+    print "\t-p, --plot"
     print "\t\tis optional and if present, tlv_vs_obfuscate plots the text"
     print "\t\toutput provided in <inputPath> directory."
-    print "\t-v"
+    print "\t-v, --verbose"
     print "\t\tis optional and only takes effect if the output type is 'text' or"
     print "\t\t-p is used. In this case, the output files will contain all"
     print "\t\tdistribution data. If this option is not provided (default),"
     print "\t\ttlv_cs_obfuscate will only saves the mean and standard deviation"
     print "\t\tof the results."
-    print "\t-e"
+    print "\t-e, --etype <errorType>"
     print "\t\tis the error type, either standard deviation 'stdev', minumum and"
     print "\t\tmaximum value 'yerr', or 'both'."
-    print "\t-l"
+    print "\t-l, --llimit <lengthLimit>"
     print "\t\t(optional) is the length limit of the URI. The default is 2000"
     print "\t\tbytes"
-    print "\t-c"
+    print "\t-c, --climit <componentsLimit>"
     print "\t\t(optional) is the maximum number of components in a URI. The"
     print "\t\tdefault is 80."
 
@@ -135,27 +135,46 @@ def main(argv):
         sys.exit(2)
 
     if plot == False:
+        print "Processing input files..."
         if os.path.isfile(inputPath):
             processFile(inputPath)
-            print("--- %s seconds ---" % (time.time() - start_time))
         else:
             for filePath in [os.path.join(inputPath, f) for f in
                              sorted(os.listdir(inputPath)) if
                              os.path.isfile(os.path.join(inputPath, f))]:
                 processFile(filePath)
-            print("--- %s seconds ---" % (time.time() - start_time))
 
         outputResults(outputType, verbose, errorType)
-        print("--- %s seconds ---" % (time.time() - start_time))
     else:
         plotResultsFromFile(inputPath, verbose, errorType)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def processFile(filePath):
-    print "Processing '" + filePath + "'..."
+    global start_time
+
+    print "\t'" + filePath + "'... ",
+
+    fileSize = os.path.getsize(filePath)
+    totalBytesRead = 0
+
+    progress = "{:.4f}".format(0).zfill(8)
+    print progress,
+    previousProgress = len(progress)
+    count = 0
     with open(filePath, "r") as inFile:
         for line in inFile:
+            count = count + 1
+            totalBytesRead = totalBytesRead + len(line)
+
+            # Print the progress.
+            if count % 100 == 0:
+                back="\b" * (previousProgress + 2)
+                print back,
+                progress = "{:.4f}".format(round(
+                    (float(totalBytesRead) / fileSize) * 100, 4)).zfill(8) + "%"
+                print progress,
+                previousProgress = len(progress)
+
             # Skip all long URIs, this gets rid of outliers.
             if len(line) > LENGTH_LIMIT:
                 continue
@@ -176,31 +195,40 @@ def processFile(filePath):
             tlv.append(tlvEncodingSize)
 
             # 16-bit encoding size.
-            hash16EncodingSize = (HASH16SIZE + 2) * len(name)
+            hash16EncodingSize = (HASH16SIZE * len(name)) + 4
             hash16.append(hash16EncodingSize)
 
             # 32-bit encoding size.
-            hash32EncodingSize = (HASH32SIZE + 2) * len(name)
+            hash32EncodingSize = (HASH32SIZE * len(name)) + 4
             hash32.append(hash32EncodingSize)
 
             # 48-bit encoding size.
-            hash48EncodingSize = (HASH48SIZE + 2) * len(name)
+            hash48EncodingSize = (HASH48SIZE * len(name)) + 4
             hash48.append(hash48EncodingSize)
 
             # 64-bit encoding size.
-            hash64EncodingSize = (HASH64SIZE + 2) * len(name)
+            hash64EncodingSize = (HASH64SIZE * len(name)) + 4
             hash64.append(hash64EncodingSize)
 
             # 128-bit encoding size.
-            hash128EncodingSize = (HASH128SIZE + 2) * len(name)
+            hash128EncodingSize = (HASH128SIZE * len(name)) + 4
             hash128.append(hash128EncodingSize)
 
             # 160-bit encoding size.
-            hash160EncodingSize = (HASH160SIZE + 2) * len(name)
+            hash160EncodingSize = (HASH160SIZE * len(name)) + 4
             hash160.append(hash160EncodingSize)
+
+    back="\b" * (previousProgress + 2)
+    print back,
+    progress = "{:.4f}".format(100).zfill(8)
+    print progress
+    previousProgress = len(progress)
+    print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
 def outputResults(outputType, verbose, errorType):
+    global start_time
+
     if outputType == "plot":
         if verbose:
             plotPDF()
@@ -208,6 +236,8 @@ def outputResults(outputType, verbose, errorType):
         plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
     elif outputType == "text":
         saveResults(verbose, errorType)
+
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def plotResultsFromFile(inputPath, verbose, errorType):
@@ -298,6 +328,7 @@ def plotResultsFromFile(inputPath, verbose, errorType):
             max_yerr.extend(tmp)
 
     plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 def plotPDF():
@@ -397,7 +428,7 @@ def plotMeanErr(mean, meanDiff, std, min_yerr, max_yerr, errorType):
     else:
         ax.set_ylim([limits[2], limits[3] + 50])
     sign = [-1 if x < 0 else 1 for x in meanDiff]
-    autoLabel(ax, rects, 20, 3, 0, sign)
+    autoLabel(ax, rects, 25, 3, 0, sign)
 
     # Save to file.
     pp = PdfPages('tlv_vs_obfuscate_NameLengthsDiff.pdf')

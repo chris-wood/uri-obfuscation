@@ -62,9 +62,9 @@ def main(argv):
     outputType = "plot"
     plot = False
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pve:l:c:", ["help", "ipath=",
-                                                          "otype=", "plot",
-                                                          "llimit=", "climit"])
+        opts, args = getopt.getopt(argv,"hi:o:pl:c:", ["help", "ipath=",
+                                                       "otype=", "plot",
+                                                       "llimit=", "climit"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
