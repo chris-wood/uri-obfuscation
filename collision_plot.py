@@ -26,14 +26,15 @@ ax1.set_xlim([0.8, 21])
 ax1.grid(True)
 
 ax2 = fig.add_subplot(212)
-ax2.bar(n, pexp, width, color='#d95319', log=True)
-ax2.bar(n + width, pana, width, color='#eeb429', log=True)
+rects2 = ax2.bar(n, pexp, width, color='#d95319', log=True)
+rects3 = ax2.bar(n + width, pana, width, color='#eeb429', log=True)
 ax2.set_xlabel(r'Number of prefix segments $n$')
 ax2.set_ylabel(r'Probability of Collision $f(2^+)$')
 ax2.set_xticks(n + width)
 ax2.set_xticklabels(('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
                      '12', '13', '14', '15', '16', '17', '18', '19', '20'))
 ax2.set_xlim([0.8, 21])
+ax2.legend((rects2[0], rects3[0]), ('Experimental', 'Analytical'))
 ax2.grid(True)
 
 # Save to file.
