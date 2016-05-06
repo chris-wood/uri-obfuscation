@@ -35,8 +35,8 @@ obfuscator = obfuscate.ObfuscatorSHA256()
 
 
 def usage():
-    print "python collision.py -i <inputPath> -c <componentsLimit> -d <dhtType>"
-    print "                    -s <hashSize> -t <dataType>"
+    print "python collision_sha256.py -i <inputPath> -c <componentsLimit>"
+    print "                           -d <dhtType> -s <hashSize> -t <dataType>"
     print ""
     print "\t-i, --ipath <inputPath>"
     print "\t\tis the path of a directory containing several files each"
