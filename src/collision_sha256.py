@@ -11,8 +11,6 @@ import os.path
 import shutil
 import pickle
 import obfuscate
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 from urlparse import urlparse
 from pydht.local.disk import LocalDiskDHT
 from pydht.local.db import LocalDbDHT
@@ -37,21 +35,13 @@ obfuscator = obfuscate.ObfuscatorSHA256()
 
 
 def usage():
-    print "python collision.py -i <inputPath> -o <outputType> -p"
-    print "                    -c <componentsLimit> -d <dhtType>"
-    print "                    -s <hashSize> -t <dataType>"
+    print "python collision_sha256.py -i <inputPath> -c <componentsLimit>"
+    print "                           -d <dhtType> -s <hashSize> -t <dataType>"
     print ""
     print "\t-i, --ipath <inputPath>"
     print "\t\tis the path of a directory containing several files each"
     print "\t\tcontaining name prefixes of a specific length (in terms of number"
     print "\t\tof components)."
-    print "\t-o, --otype <outputType>"
-    print "\t\tis optional and it is either 'text' or 'plot'. 'text' outputs the"
-    print "\t\tgraphs in text format to be plotted later, while 'plot' (default)"
-    print "\t\tplots the result."
-    print "\t-p, --plot"
-    print "\t\tis optional and if present, tlv_vs_obfuscate plots the text"
-    print "\t\toutput provided in <inputPath> directory."
     print "\t-c, --climit <componentsLimit>"
     print "\t\tis the maximum number of components in a URI."
     print "\t-d, --dhttype <dhtType>"
@@ -74,16 +64,13 @@ def main(argv):
     start_time = time.time()
 
     inputPath = ""
-    outputType = "plot"
-    plot = False
     dhtType = "memory"
     hashSize = ""
     dataType = ""
     try:
-        opts, args = getopt.getopt(argv,"hi:o:pc:d:s:t:", ["help", "ipath=",
-                                                           "otype=", "plot",
-                                                           "climit=", "dhttype",
-                                                           "hsize=", "dtype="])
+        opts, args = getopt.getopt(argv,"hi:c:d:s:t:", ["help", "ipath=",
+                                                        "climit=", "dhttype",
+                                                        "hsize=", "dtype="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -94,10 +81,6 @@ def main(argv):
             sys.exit()
         elif opt in ("-i", "--ipath"):
             inputPath = arg
-        elif opt in ("-o", "--otype"):
-            outputType = arg
-        elif opt in ("-p", "--plot"):
-            plot = True
         elif opt in ("-c", "--climit"):
             COMPONENT_LIMIT = int(arg)
         elif opt in ("-d", "--dhttype"):
@@ -128,14 +111,6 @@ def main(argv):
     if dataType == "":
         print "Missing data type."
         usage()
-        sys.exit(2)
-
-    if outputType not in ("text", "plot"):
-        print "Output type must be either 'text' or 'plot'."
-        sys.exit(2)
-
-    if outputType == "text" and plot == True:
-        print "Output type 'plot' cannot be use with -p."
         sys.exit(2)
 
     if dhtType not in ("disk", "db", "memory"):
@@ -181,16 +156,12 @@ def main(argv):
     counters = [0] * COMPONENT_LIMIT
 
     print "Processing input files..."
-    if plot == False:
-        for i in range(0, COMPONENT_LIMIT):
-            processFile(os.path.join(inputPath, str(i + 1) + "-component"),
-                        sizes, dataType, i)
+    for i in range(0, COMPONENT_LIMIT):
+        processFile(os.path.join(inputPath, str(i + 1) + "-component"),
+                    sizes, dataType, i)
 
-        outputResults(outputType, sizes)
-        print("--- %s seconds ---" % (time.time() - start_time))
-    else:
-        plotResultsFromFile(inputPath, sizes)
-        print("--- %s seconds ---" % (time.time() - start_time))
+    outputResults(sizes)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
     # Cleaning up.
     print "Cleaning up..."
@@ -250,13 +221,9 @@ def processFile(filePath, sizes, dataType, compIndex):
     print("\t--- %s seconds ---" % (time.time() - start_time))
 
 
-def outputResults(outputType, sizes):
+def outputResults(sizes):
     collisions = processResults(sizes)
-
-    if outputType == "plot":
-        plotResults(collisions, sizes)
-    elif outputType == "text":
-        saveResults(collisions, sizes)
+    saveResults(collisions, sizes)
 
 
 def processResults(sizes):
@@ -282,36 +249,6 @@ def processResults(sizes):
     return collisions
 
 
-# TODO(cesar): fix this function based on the new collisions structure.
-def plotResults(collisions, sizes):
-    print "Plotting collision results..."
-    plt.hold(True)
-
-    for size in sizes:
-        plot(collisions[size], size + "-bit")
-
-    finalizePlot()
-
-
-def plot(prob, legendText):
-    comps = range(1, len(prob) + 1)
-    plt.plot(comps, prob, label=legendText)
-
-
-def finalizePlot():
-    # Set grid, axis labels, and legend.
-    plt.grid(True)
-    plt.xlabel("Number of name components")
-    plt.ylabel("Collision probability")
-    plt.legend()
-
-    # Save to file.
-    pp = PdfPages("collision_sha256.pdf")
-    plt.savefig(pp, format='pdf')
-    pp.close()
-    plt.cla()
-
-
 def saveResults(collisions, sizes):
     if os.path.isdir("collision_sha256_output"):
         if len(sizes) == len(sizeUsed):
@@ -324,18 +261,6 @@ def saveResults(collisions, sizes):
         print "\t./collision_sha256_output/" + size + ".out..."
         with open("collision_sha256_output/" + size + ".out", "w+") as outFile:
             pickle.dump(collisions[size], outFile)
-
-
-def plotResultsFromFile(inputPath, sizes):
-    collisions = {}
-
-    print "Reading results stored in text format"
-    for size in sizes:
-        print "\t" + os.path.join(inputPath, size + ".out") + "..."
-        with open(os.path.join(inputPath, size + ".out"), "r") as inFile:
-            collisions[size] = pickle.load(inFile)
-
-    plotResults(collisions, sizes)
 
 
 def strip_scheme(url):
